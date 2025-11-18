@@ -1,25 +1,21 @@
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import LoginHeader from './components/LoginHeader';
 import LoginForm from './components/Loginform';
 import SecurityBadges from './components/SecurityBadges';
 import SignupPrompt from './components/SignupPrompt';
+import { useAuth } from '../../context/AuthContext';
 
 const Login = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { authenticated } = useAuth();
 
   useEffect(() => {
-    // Check if user is already logged in
-    const userSession = localStorage.getItem('userSession');
-    if (userSession) {
-      const session = JSON.parse(userSession);
-      if (session?.userType === 'admin') {
-        navigate('/admin-dashboard');
-      } else {
-        navigate('/home');
-      }
+    if (authenticated) {
+      navigate('/profile');
     }
-  }, [navigate]);
+  }, [authenticated, navigate]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -33,7 +29,7 @@ const Login = () => {
 
           {/* Main Login Form */}
           <div className="civic-card p-6 space-y-6">
-            <LoginForm />
+            <LoginForm forcedRole={searchParams.get('role')} />
           </div>
 
           {/* Security Badges */}

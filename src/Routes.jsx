@@ -9,6 +9,7 @@ import Community from './pages/community';
 import Login from './pages/login';
 import ReportIssue from './pages/report-issue';
 import Issues from './pages/issue';
+import Profile from './pages/profile';
 
 const Routes = () => {
   return (
@@ -22,7 +23,8 @@ const Routes = () => {
         <Route path="/map-view" element={<MapView />} />
         <Route path="/community" element={<Community />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/report-issue" element={<ReportIssue />} />
+  <Route path="/report-issue" element={<ReportIssue />} />
+  <Route path="/profile" element={<Profile />} />
         <Route path="/issues" element={<Issues />} />
         <Route path="*" element={<NotFound />} />
       </RouterRoutes>

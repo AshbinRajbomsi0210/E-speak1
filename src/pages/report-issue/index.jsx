@@ -182,6 +182,34 @@ const ReportIssue = () => {
                 location={formData?.location}
                 onLocationChange={handleLocationChange}
               />
+
+              {/* Final Submit Button - placed at the very end of the report flow */}
+              <div className="bg-card rounded-lg border border-border p-6 civic-shadow-card">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-text-secondary">
+                    Please review all details before submitting your report.
+                  </div>
+                  <Button
+                    variant="default"
+                    size="lg"
+                    onClick={handleSubmit}
+                    loading={isSubmitting}
+                    iconName="Send"
+                    iconPosition="right"
+                    disabled={
+                      !formData?.title ||
+                      !formData?.description ||
+                      !formData?.category ||
+                      !formData?.priority ||
+                      !formData?.reporterName ||
+                      !formData?.reporterEmail ||
+                      !formData?.location?.address
+                    }
+                  >
+                    {isSubmitting ? 'Processing Report...' : 'Submit Issue Report'}
+                  </Button>
+                </div>
+              </div>
             </div>
 
             {/* Right Column - AI Assistant & Progress */}

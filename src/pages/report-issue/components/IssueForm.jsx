@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
-import Button from '../../../components/ui/Button';
 import Icon from '../../../components/AppIcon';
 
-const IssueForm = ({ formData, onFormChange, onSubmit, isSubmitting }) => {
+const IssueForm = ({ formData, onFormChange }) => {
   const [charCount, setCharCount] = useState(formData?.description?.length || 0);
   const maxChars = 500;
 
@@ -31,9 +30,8 @@ const IssueForm = ({ formData, onFormChange, onSubmit, isSubmitting }) => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const preventSubmit = (e) => {
     e?.preventDefault();
-    onSubmit();
   };
 
   return (
@@ -47,7 +45,7 @@ const IssueForm = ({ formData, onFormChange, onSubmit, isSubmitting }) => {
           <p className="text-sm text-text-secondary">Provide comprehensive information about the issue</p>
         </div>
       </div>
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={preventSubmit} className="space-y-6">
         <Input
           label="Issue Title"
           type="text"
@@ -129,20 +127,7 @@ const IssueForm = ({ formData, onFormChange, onSubmit, isSubmitting }) => {
           description="In case we need to contact you directly"
         />
 
-        <div className="pt-4 border-t border-border">
-          <Button
-            type="submit"
-            variant="default"
-            size="lg"
-            loading={isSubmitting}
-            iconName="Send"
-            iconPosition="right"
-            className="w-full md:w-auto"
-            disabled={!formData?.title || !formData?.description || !formData?.category || !formData?.priority || !formData?.reporterName || !formData?.reporterEmail}
-          >
-            {isSubmitting ? 'Processing Report...' : 'Submit Issue Report'}
-          </Button>
-        </div>
+        {/* Submit button moved to the very bottom of the report page */}
       </form>
     </div>
   );

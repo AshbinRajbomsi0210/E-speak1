@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Icon from '../AppIcon';
 import Button from './Button';
+import { useAuth } from '../../context/AuthContext';
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showSigninMenu, setShowSigninMenu] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { authenticated, user, role, signIn, signOut } = useAuth();
 
   const navigationItems = [
     { label: 'Home', path: '/home', icon: 'Home' },
@@ -54,13 +59,59 @@ const Header = () => {
           </nav>
 
           {/* Desktop User Actions */}
-          <div className="hidden md:flex items-center space-x-3">
-            <Button variant="ghost" size="sm">
+          <div className="hidden md:flex items-center space-x-3 relative">
+            <Button variant="ghost" size="sm" aria-label="Notifications">
               <Icon name="Bell" size={18} />
             </Button>
-            <Button variant="ghost" size="sm">
-              <Icon name="User" size={18} />
-            </Button>
+            {authenticated ? (
+              <div className="relative">
+                <Button variant="ghost" size="sm" onClick={() => setShowUserMenu(prev => !prev)} aria-haspopup="menu" aria-expanded={showUserMenu}>
+                  <Icon name="User" size={18} />
+                  <span className="ml-2 hidden lg:inline font-medium">{user?.name}</span>
+                  <Icon name={showUserMenu ? 'ChevronUp' : 'ChevronDown'} size={16} />
+                </Button>
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-56 civic-card p-2 space-y-1 border border-border rounded-lg shadow-lg z-50">
+                    <div className="px-3 py-2 text-sm text-text-secondary">
+                      Signed in as <span className="font-medium text-foreground">{user?.email}</span>
+                      <div className="text-xs mt-1 capitalize">Role: {role}</div>
+                    </div>
+                    <Link to="/profile" className="flex items-center space-x-2 px-3 py-2 rounded-md hover:bg-muted text-sm civic-transition" onClick={() => setShowUserMenu(false)}>
+                      <Icon name="User" size={16} />
+                      <span>Profile</span>
+                    </Link>
+                    <button className="flex w-full items-center space-x-2 px-3 py-2 rounded-md hover:bg-muted text-sm civic-transition" onClick={() => { signOut(); setShowUserMenu(false); navigate('/home'); }}>
+                      <Icon name="LogOut" size={16} />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="relative">
+                <Button variant="ghost" size="sm" onClick={() => setShowSigninMenu(prev => !prev)} aria-haspopup="menu" aria-expanded={showSigninMenu}>
+                  <Icon name="LogIn" size={18} />
+                  <span className="ml-2 hidden lg:inline font-medium">Sign In</span>
+                  <Icon name={showSigninMenu ? 'ChevronUp' : 'ChevronDown'} size={16} />
+                </Button>
+                {showSigninMenu && (
+                  <div className="absolute right-0 mt-2 w-48 civic-card p-2 space-y-1 border border-border rounded-lg shadow-lg z-50">
+                    {['user','admin','authority'].map(r => (
+                      <button key={r} className="flex w-full items-center space-x-2 px-3 py-2 rounded-md hover:bg-muted text-sm civic-transition capitalize" onClick={() => { signIn(r); setShowSigninMenu(false); navigate('/profile'); }}>
+                        <Icon name={r === 'admin' ? 'Shield' : r === 'authority' ? 'Award' : 'User'} size={16} />
+                        <span>{r}</span>
+                      </button>
+                    ))}
+                    <div className="border-t border-border mt-1 pt-1">
+                      <Link to="/login" onClick={() => setShowSigninMenu(false)} className="flex items-center space-x-2 px-3 py-2 rounded-md hover:bg-muted text-sm civic-transition">
+                        <Icon name="Key" size={16} />
+                        <span>Full Login Page</span>
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -96,18 +147,40 @@ const Header = () => {
               
               {/* Mobile User Actions */}
               <div className="pt-3 mt-3 border-t border-border">
-                <Link
-                  to="/profile"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center space-x-3 px-3 py-3 rounded-lg text-text-secondary hover:text-foreground hover:bg-muted civic-transition"
-                >
-                  <Icon name="User" size={20} />
-                  <span className="font-medium">Profile</span>
-                </Link>
-                <button className="flex items-center space-x-3 px-3 py-3 rounded-lg text-text-secondary hover:text-foreground hover:bg-muted civic-transition w-full">
-                  <Icon name="Bell" size={20} />
-                  <span className="font-medium">Notifications</span>
-                </button>
+                {authenticated ? (
+                  <>
+                    <Link
+                      to="/profile"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center space-x-3 px-3 py-3 rounded-lg text-text-secondary hover:text-foreground hover:bg-muted civic-transition"
+                    >
+                      <Icon name="User" size={20} />
+                      <span className="font-medium">Profile</span>
+                    </Link>
+                    <button className="flex items-center space-x-3 px-3 py-3 rounded-lg text-text-secondary hover:text-foreground hover:bg-muted civic-transition w-full" onClick={() => { signOut(); setIsMobileMenuOpen(false); navigate('/home'); }}>
+                      <Icon name="LogOut" size={20} />
+                      <span className="font-medium">Sign Out</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div className="px-3 py-2 text-xs text-text-secondary">Quick Sign In</div>
+                    {['user','admin','authority'].map(r => (
+                      <button key={r} onClick={() => { signIn(r); setIsMobileMenuOpen(false); navigate('/profile'); }} className="flex items-center space-x-3 px-3 py-3 rounded-lg text-text-secondary hover:text-foreground hover:bg-muted civic-transition w-full capitalize">
+                        <Icon name={r === 'admin' ? 'Shield' : r === 'authority' ? 'Award' : 'User'} size={20} />
+                        <span className="font-medium">{r}</span>
+                      </button>
+                    ))}
+                    <Link
+                      to="/login"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center space-x-3 px-3 py-3 rounded-lg text-text-secondary hover:text-foreground hover:bg-muted civic-transition"
+                    >
+                      <Icon name="Key" size={20} />
+                      <span className="font-medium">Full Login Page</span>
+                    </Link>
+                  </>
+                )}
               </div>
             </nav>
           </div>
