@@ -183,32 +183,35 @@ const ReportIssue = () => {
                 onLocationChange={handleLocationChange}
               />
 
-              {/* Final Submit Button - placed at the very end of the report flow */}
-              <div className="bg-card rounded-lg border border-border p-6 civic-shadow-card">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-text-secondary">
-                    Please review all details before submitting your report.
+              {/* Final Note + Solo Submit Button */}
+              <div className="bg-card rounded-lg border border-border p-6 civic-shadow-card space-y-4">
+                <div className="flex items-start space-x-3 p-4 rounded-lg bg-accent/10 border border-accent/20">
+                  <div className="mt-0.5">
+                    <Icon name="Info" size={18} className="text-accent" />
                   </div>
-                  <Button
-                    variant="default"
-                    size="lg"
-                    onClick={handleSubmit}
-                    loading={isSubmitting}
-                    iconName="Send"
-                    iconPosition="right"
-                    disabled={
-                      !formData?.title ||
-                      !formData?.description ||
-                      !formData?.category ||
-                      !formData?.priority ||
-                      !formData?.reporterName ||
-                      !formData?.reporterEmail ||
-                      !formData?.location?.address
-                    }
-                  >
-                    {isSubmitting ? 'Processing Report...' : 'Submit Issue Report'}
-                  </Button>
+                  <div className="text-sm">
+                    <p className="text-foreground font-medium mb-0.5">Note</p>
+                    <p className="text-text-secondary">Please review all details before submitting your report.</p>
+                  </div>
                 </div>
+
+                <Button
+                  variant="default"
+                  className="block mx-auto w-72"
+                  onClick={handleSubmit}
+                  loading={isSubmitting}
+                  disabled={
+                    !formData?.title ||
+                    !formData?.description ||
+                    !formData?.category ||
+                    !formData?.priority ||
+                    !formData?.reporterName ||
+                    !formData?.reporterEmail ||
+                    !formData?.location?.address
+                  }
+                >
+                  {isSubmitting ? 'Submitting…' : 'Submit'}
+                </Button>
               </div>
             </div>
 
