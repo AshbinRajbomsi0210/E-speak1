@@ -1,12 +1,11 @@
 import React, { useEffect } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import LoginForm from './components/Loginform';
+import { useNavigate, Link } from 'react-router-dom';
+import RegisterForm from './components/RegisterForm';
 import Icon from '../../components/AppIcon';
 import { useAuth } from '../../context/AuthContext';
 
-const Login = () => {
+const Register = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { authenticated } = useAuth();
 
   useEffect(() => {
@@ -18,7 +17,7 @@ const Login = () => {
   return (
     <div className="min-h-screen flex">
       {/* Left Panel - Hero Section */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary via-primary/90 to-accent relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-accent via-accent/90 to-primary relative overflow-hidden">
         {/* Decorative Elements */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-20 left-20 w-72 h-72 bg-white rounded-full blur-3xl"></div>
@@ -28,7 +27,7 @@ const Login = () => {
         <div className="relative z-10 flex flex-col justify-center px-12 xl:px-20 text-white">
           <Link to="/home" className="inline-flex items-center space-x-3 mb-12">
             <div className="flex items-center justify-center w-14 h-14 bg-white rounded-xl shadow-lg">
-              <Icon name="MessageSquare" size={32} className="text-primary" />
+              <Icon name="MessageSquare" size={32} className="text-accent" />
             </div>
             <div>
               <h1 className="text-3xl font-bold">E-speak</h1>
@@ -38,38 +37,38 @@ const Login = () => {
           
           <div className="space-y-6 max-w-lg">
             <h2 className="text-4xl xl:text-5xl font-bold leading-tight">
-              Welcome Back to Your Community
+              Join Your Community Today
             </h2>
             <p className="text-lg text-white/90 leading-relaxed">
-              Sign in to report issues, engage with your community, and create meaningful change in your neighborhood.
+              Create an account to start reporting issues, engaging with neighbors, and making a real difference in your community.
             </p>
             
             <div className="space-y-4 pt-6">
               <div className="flex items-start space-x-3">
                 <div className="flex items-center justify-center w-10 h-10 bg-white/20 rounded-lg backdrop-blur-sm">
-                  <Icon name="MapPin" size={20} />
+                  <Icon name="Zap" size={20} />
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-1">Report Local Issues</h3>
-                  <p className="text-sm text-white/80">Make your voice heard on community concerns</p>
+                  <h3 className="font-semibold mb-1">Quick & Easy Setup</h3>
+                  <p className="text-sm text-white/80">Get started in less than 2 minutes</p>
                 </div>
               </div>
               <div className="flex items-start space-x-3">
                 <div className="flex items-center justify-center w-10 h-10 bg-white/20 rounded-lg backdrop-blur-sm">
-                  <Icon name="Users" size={20} />
+                  <Icon name="Shield" size={20} />
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-1">Connect & Collaborate</h3>
-                  <p className="text-sm text-white/80">Join discussions and support initiatives</p>
+                  <h3 className="font-semibold mb-1">Safe & Secure</h3>
+                  <p className="text-sm text-white/80">Your data is protected with encryption</p>
                 </div>
               </div>
               <div className="flex items-start space-x-3">
                 <div className="flex items-center justify-center w-10 h-10 bg-white/20 rounded-lg backdrop-blur-sm">
-                  <Icon name="TrendingUp" size={20} />
+                  <Icon name="Heart" size={20} />
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-1">Track Progress</h3>
-                  <p className="text-sm text-white/80">See real-time updates on issue resolution</p>
+                  <h3 className="font-semibold mb-1">Make an Impact</h3>
+                  <p className="text-sm text-white/80">Be part of positive community change</p>
                 </div>
               </div>
             </div>
@@ -77,12 +76,12 @@ const Login = () => {
         </div>
       </div>
 
-      {/* Right Panel - Login Form */}
+      {/* Right Panel - Register Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-background">
         <div className="w-full max-w-md space-y-8">
           {/* Mobile Logo */}
           <Link to="/home" className="lg:hidden flex items-center justify-center space-x-3 mb-8">
-            <div className="flex items-center justify-center w-12 h-12 bg-primary rounded-xl">
+            <div className="flex items-center justify-center w-12 h-12 bg-accent rounded-xl">
               <Icon name="MessageSquare" size={28} className="text-white" />
             </div>
             <div>
@@ -91,26 +90,26 @@ const Login = () => {
           </Link>
 
           <div className="text-center lg:text-left space-y-2">
-            <h2 className="text-3xl font-bold text-foreground">Sign In</h2>
+            <h2 className="text-3xl font-bold text-foreground">Create Account</h2>
             <p className="text-text-secondary">
-              Enter your credentials to access your account
+              Fill in your details to get started
             </p>
           </div>
 
-          {/* Login Form */}
-          <LoginForm forcedRole={searchParams.get('role')} />
+          {/* Register Form */}
+          <RegisterForm />
 
-          {/* Sign Up Link */}
+          {/* Sign In Link */}
           <div className="text-center pt-6 border-t border-border">
             <p className="text-sm text-text-secondary mb-3">
-              Don't have an account?
+              Already have an account?
             </p>
             <Link 
-              to="/register"
+              to="/login"
               className="inline-flex items-center space-x-2 text-primary hover:text-primary/80 font-medium civic-transition"
             >
-              <Icon name="UserPlus" size={18} />
-              <span>Create Account</span>
+              <Icon name="LogIn" size={18} />
+              <span>Sign In</span>
             </Link>
           </div>
 
@@ -126,7 +125,7 @@ const Login = () => {
             </div>
             <div className="flex items-center space-x-1">
               <div className="w-2 h-2 bg-success rounded-full"></div>
-              <span>Encrypted</span>
+              <span>Free</span>
             </div>
           </div>
         </div>
@@ -135,4 +134,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Register;

@@ -127,7 +127,6 @@ const IssueForm = ({ formData, onFormChange }) => {
           description="In case we need to contact you directly"
         />
 
-        {/* Submit button moved to the very bottom of the report page */}
       </form>
     </div>
   );

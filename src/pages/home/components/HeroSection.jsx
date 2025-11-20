@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/AppIcon';
+import communityImg from '../../../assets/community.png';
 
 const HeroSection = () => {
   return (
@@ -46,26 +47,16 @@ const HeroSection = () => {
             </div>
           </div>
 
-          {/* Hero Image */}
+          {/* Image */}
           <div className="relative">
             <div className="relative bg-white rounded-2xl p-8 civic-shadow-card">
-              <div className="aspect-square bg-gradient-to-br from-primary/10 to-accent/10 rounded-xl flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-24 h-24 bg-primary rounded-full flex items-center justify-center mb-4 mx-auto">
-                    <Icon name="MessageSquare" size={40} color="white" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-foreground mb-2">Community Voice</h3>
-                  <p className="text-text-secondary">Making civic engagement accessible to everyone</p>
-                </div>
+              <div className="aspect-square bg-gradient-to-br from-primary/10 to-accent/10 rounded-xl flex items-center justify-center overflow-hidden">
+                <img 
+                  src={communityImg} 
+                  alt="Community Voice" 
+                  className="w-full h-full object-cover rounded-xl"
+                />
               </div>
-            </div>
-            
-            {/* Floating Elements */}
-            <div className="absolute -top-4 -right-4 w-16 h-16 bg-accent rounded-full flex items-center justify-center civic-shadow-card">
-              <Icon name="Users" size={24} color="white" />
-            </div>
-            <div className="absolute -bottom-4 -left-4 w-12 h-12 bg-warning rounded-full flex items-center justify-center civic-shadow-card">
-              <Icon name="AlertCircle" size={20} color="white" />
             </div>
           </div>
         </div>

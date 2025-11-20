@@ -8,6 +8,7 @@ const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showSigninMenu, setShowSigninMenu] = useState(false);
+  const [selectedRole, setSelectedRole] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
   const { authenticated, user, role, signIn, signOut } = useAuth();
@@ -95,19 +96,44 @@ const Header = () => {
                   <Icon name={showSigninMenu ? 'ChevronUp' : 'ChevronDown'} size={16} />
                 </Button>
                 {showSigninMenu && (
-                  <div className="absolute right-0 mt-2 w-48 civic-card p-2 space-y-1 border border-border rounded-lg shadow-lg z-50">
-                    {['user','admin','authority'].map(r => (
-                      <button key={r} className="flex w-full items-center space-x-2 px-3 py-2 rounded-md hover:bg-muted text-sm civic-transition capitalize" onClick={() => { signIn(r); setShowSigninMenu(false); navigate('/profile'); }}>
-                        <Icon name={r === 'admin' ? 'Shield' : r === 'authority' ? 'Award' : 'User'} size={16} />
-                        <span>{r}</span>
-                      </button>
-                    ))}
-                    <div className="border-t border-border mt-1 pt-1">
-                      <Link to="/login" onClick={() => setShowSigninMenu(false)} className="flex items-center space-x-2 px-3 py-2 rounded-md hover:bg-muted text-sm civic-transition">
-                        <Icon name="Key" size={16} />
-                        <span>Full Login Page</span>
-                      </Link>
-                    </div>
+                  <div className="absolute right-0 mt-2 w-52 civic-card p-2 space-y-1 border border-border rounded-lg shadow-lg z-50">
+                    {!selectedRole ? (
+                      <>
+                        <div className="px-3 py-2 text-xs text-text-secondary font-medium uppercase tracking-wide">Select Role</div>
+                        {['user','admin','authority'].map(r => (
+                          <button key={r} className="flex w-full items-center space-x-2 px-3 py-2 rounded-md hover:bg-muted text-sm civic-transition capitalize" onClick={() => setSelectedRole(r)}>
+                            <Icon name={r === 'admin' ? 'Shield' : r === 'authority' ? 'Award' : 'User'} size={16} />
+                            <span>{r}</span>
+                            <Icon name="ChevronRight" size={14} className="ml-auto" />
+                          </button>
+                        ))}
+                      </>
+                    ) : (
+                      <>
+                        <button className="flex w-full items-center space-x-2 px-3 py-2 text-xs text-text-secondary hover:text-foreground civic-transition" onClick={() => setSelectedRole(null)}>
+                          <Icon name="ChevronLeft" size={14} />
+                          <span>Back</span>
+                        </button>
+                        <div className="px-3 py-2 text-xs text-text-secondary capitalize">
+                          <span className="font-medium text-foreground">{selectedRole}</span> Account
+                        </div>
+                        <Link to={`/login?role=${selectedRole}`} onClick={() => { setShowSigninMenu(false); setSelectedRole(null); }} className="flex items-center space-x-2 px-3 py-2 rounded-md hover:bg-muted text-sm civic-transition">
+                          <Icon name="LogIn" size={16} />
+                          <span>Sign In</span>
+                        </Link>
+                        {selectedRole === 'user' && (
+                          <Link to={`/register?role=${selectedRole}`} onClick={() => { setShowSigninMenu(false); setSelectedRole(null); }} className="flex items-center space-x-2 px-3 py-2 rounded-md hover:bg-muted text-sm civic-transition">
+                            <Icon name="UserPlus" size={16} />
+                            <span>Create Account</span>
+                          </Link>
+                        )}
+                        <div className="border-t border-border my-1"></div>
+                        <button className="flex w-full items-center space-x-2 px-3 py-2 rounded-md hover:bg-muted text-xs text-text-secondary civic-transition" onClick={() => { signIn(selectedRole); setShowSigninMenu(false); setSelectedRole(null); navigate('/profile'); }}>
+                          <Icon name="Zap" size={14} />
+                          <span>Quick Demo Login</span>
+                        </button>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
@@ -164,21 +190,53 @@ const Header = () => {
                   </>
                 ) : (
                   <>
-                    <div className="px-3 py-2 text-xs text-text-secondary">Quick Sign In</div>
-                    {['user','admin','authority'].map(r => (
-                      <button key={r} onClick={() => { signIn(r); setIsMobileMenuOpen(false); navigate('/profile'); }} className="flex items-center space-x-3 px-3 py-3 rounded-lg text-text-secondary hover:text-foreground hover:bg-muted civic-transition w-full capitalize">
-                        <Icon name={r === 'admin' ? 'Shield' : r === 'authority' ? 'Award' : 'User'} size={20} />
-                        <span className="font-medium">{r}</span>
-                      </button>
-                    ))}
-                    <Link
-                      to="/login"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="flex items-center space-x-3 px-3 py-3 rounded-lg text-text-secondary hover:text-foreground hover:bg-muted civic-transition"
-                    >
-                      <Icon name="Key" size={20} />
-                      <span className="font-medium">Full Login Page</span>
-                    </Link>
+                    {!selectedRole ? (
+                      <>
+                        <div className="px-3 py-2 text-xs text-text-secondary uppercase tracking-wide">Select Role</div>
+                        {['user','admin','authority'].map(r => (
+                          <button key={r} onClick={() => setSelectedRole(r)} className="flex items-center justify-between space-x-3 px-3 py-3 rounded-lg text-text-secondary hover:text-foreground hover:bg-muted civic-transition w-full capitalize">
+                            <div className="flex items-center space-x-3">
+                              <Icon name={r === 'admin' ? 'Shield' : r === 'authority' ? 'Award' : 'User'} size={20} />
+                              <span className="font-medium">{r}</span>
+                            </div>
+                            <Icon name="ChevronRight" size={18} />
+                          </button>
+                        ))}
+                      </>
+                    ) : (
+                      <>
+                        <button onClick={() => setSelectedRole(null)} className="flex items-center space-x-2 px-3 py-2 text-xs text-text-secondary hover:text-foreground civic-transition">
+                          <Icon name="ChevronLeft" size={16} />
+                          <span>Back</span>
+                        </button>
+                        <div className="px-3 py-2 text-xs text-text-secondary capitalize">
+                          <span className="font-medium text-foreground text-base">{selectedRole}</span> Account
+                        </div>
+                        <Link
+                          to={`/login?role=${selectedRole}`}
+                          onClick={() => { setIsMobileMenuOpen(false); setSelectedRole(null); }}
+                          className="flex items-center space-x-3 px-3 py-3 rounded-lg text-text-secondary hover:text-foreground hover:bg-muted civic-transition"
+                        >
+                          <Icon name="LogIn" size={20} />
+                          <span className="font-medium">Sign In</span>
+                        </Link>
+                        {selectedRole === 'user' && (
+                          <Link
+                            to={`/register?role=${selectedRole}`}
+                            onClick={() => { setIsMobileMenuOpen(false); setSelectedRole(null); }}
+                            className="flex items-center space-x-3 px-3 py-3 rounded-lg text-text-secondary hover:text-foreground hover:bg-muted civic-transition"
+                          >
+                            <Icon name="UserPlus" size={20} />
+                            <span className="font-medium">Create Account</span>
+                          </Link>
+                        )}
+                        <div className="border-t border-border my-2"></div>
+                        <button onClick={() => { signIn(selectedRole); setIsMobileMenuOpen(false); setSelectedRole(null); navigate('/profile'); }} className="flex items-center space-x-3 px-3 py-3 rounded-lg text-text-secondary hover:text-foreground hover:bg-muted civic-transition w-full">
+                          <Icon name="Zap" size={20} />
+                          <span className="font-medium">Quick Demo Login</span>
+                        </button>
+                      </>
+                    )}
                   </>
                 )}
               </div>

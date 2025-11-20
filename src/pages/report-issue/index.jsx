@@ -169,8 +169,6 @@ const ReportIssue = () => {
               <IssueForm
                 formData={formData}
                 onFormChange={handleFormChange}
-                onSubmit={handleSubmit}
-                isSubmitting={isSubmitting}
               />
               
               <PhotoUpload
