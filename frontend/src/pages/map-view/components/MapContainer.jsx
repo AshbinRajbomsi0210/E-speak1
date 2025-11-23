@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import Icon from '../../../components/AppIcon';
+import InteractiveMap from '../../../components/InteractiveMap';
 
 const MapContainer = ({ filteredIssues, onIssueSelect, selectedIssue }) => {
-  const [mapCenter, setMapCenter] = useState({ lat: 40.7128, lng: -74.0060 });
+  const [mapCenter, setMapCenter] = useState({ lat: 27.7172, lng: 85.3240 }); // Kathmandu, Nepal default
   const [zoomLevel, setZoomLevel] = useState(12);
   const [userLocation, setUserLocation] = useState(null);
 
@@ -19,7 +20,7 @@ const MapContainer = ({ filteredIssues, onIssueSelect, selectedIssue }) => {
           setMapCenter(location);
         },
         (error) => {
-          console.log('Location access denied');
+          console.log('Location access denied, using default location (Kathmandu)');
         }
       );
     }
@@ -42,95 +43,62 @@ const MapContainer = ({ filteredIssues, onIssueSelect, selectedIssue }) => {
 
   return (
     <div className="relative w-full h-full bg-muted rounded-lg overflow-hidden">
-      {/* Google Maps Iframe */}
-      <iframe
-        width="100%"
-        height="100%"
-        loading="lazy"
-        title="Community Issues Map"
-        referrerPolicy="no-referrer-when-downgrade"
-        src={`https://www.google.com/maps?q=${mapCenter.lat},${mapCenter.lng}&z=${zoomLevel}&output=embed`}
-        className="w-full h-full"
+      {/* Interactive Leaflet Map */}
+      <InteractiveMap
+        issues={filteredIssues}
+        center={mapCenter}
+        zoom={zoomLevel}
+        onIssueClick={onIssueSelect}
+        selectedIssue={selectedIssue}
+        showControls={false}
       />
 
-      {/* Map Controls */}
-      <div className="absolute top-4 right-4 flex flex-col space-y-2">
+      {/* Custom Map Controls */}
+      <div className="absolute top-4 right-4 flex flex-col space-y-2 z-[1000]">
         <button
           onClick={handleZoomIn}
-          className="flex items-center justify-center w-10 h-10 bg-surface border border-border rounded-lg shadow-sm hover:bg-muted civic-transition"
+          className="flex items-center justify-center w-10 h-10 bg-surface border border-border rounded-lg shadow-lg hover:bg-muted civic-transition"
+          title="Zoom in"
         >
           <Icon name="Plus" size={16} />
         </button>
         <button
           onClick={handleZoomOut}
-          className="flex items-center justify-center w-10 h-10 bg-surface border border-border rounded-lg shadow-sm hover:bg-muted civic-transition"
+          className="flex items-center justify-center w-10 h-10 bg-surface border border-border rounded-lg shadow-lg hover:bg-muted civic-transition"
+          title="Zoom out"
         >
           <Icon name="Minus" size={16} />
         </button>
         <button
           onClick={handleLocationReset}
-          className="flex items-center justify-center w-10 h-10 bg-surface border border-border rounded-lg shadow-sm hover:bg-muted civic-transition"
+          className="flex items-center justify-center w-10 h-10 bg-surface border border-border rounded-lg shadow-lg hover:bg-muted civic-transition"
           title="Reset to my location"
         >
           <Icon name="MapPin" size={16} />
         </button>
       </div>
 
-      {/* Issue Markers Overlay */}
-      <div className="absolute inset-0 pointer-events-none">
-        {filteredIssues.map((issue) => (
-          <div
-            key={issue.id}
-            className="absolute pointer-events-auto cursor-pointer"
-            style={{
-              left: `${20 + (issue.id * 15) % 60}%`,
-              top: `${30 + (issue.id * 12) % 40}%`,
-              transform: 'translate(-50%, -50%)'
-            }}
-            onClick={() => onIssueSelect(issue)}
-          >
-            <div className={`relative flex items-center justify-center w-8 h-8 rounded-full border-2 border-white shadow-lg civic-transition hover:scale-110 ${
-              issue.priority === 'high' ? 'bg-error' :
-              issue.priority === 'medium' ? 'bg-warning' : 'bg-success'
-            }`}>
-              <Icon 
-                name={
-                  issue.category === 'Infrastructure' ? 'Wrench' :
-                  issue.category === 'Public Safety' ? 'Shield' :
-                  issue.category === 'Environment' ? 'Leaf' :
-                  issue.category === 'Transportation' ? 'Car' : 'AlertCircle'
-                } 
-                size={14} 
-                color="white" 
-              />
-              {issue.votes > 5 && (
-                <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-white text-xs rounded-full flex items-center justify-center">
-                  {issue.votes}
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-
       {/* Issue Details Popup */}
       {selectedIssue && (
-        <div className="absolute bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-80">
-          <div className="bg-surface border border-border rounded-lg shadow-lg p-4">
-            <div className="flex items-start justify-between mb-3">
+        <div className="absolute bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 z-[1000]">
+          <div className="bg-surface border border-border rounded-lg shadow-2xl p-6">
+            <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
-                <h3 className="font-semibold text-foreground mb-1">{selectedIssue.title}</h3>
-                <div className="flex items-center space-x-2 text-sm text-text-secondary">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                <h3 className="font-semibold text-foreground text-lg mb-2">{selectedIssue.title}</h3>
+                <div className="flex items-center space-x-2 text-sm text-text-secondary mb-3">
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                     selectedIssue.category === 'Infrastructure' ? 'bg-blue-100 text-blue-800' :
                     selectedIssue.category === 'Public Safety' ? 'bg-red-100 text-red-800' :
-                    selectedIssue.category === 'Environment'? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    selectedIssue.category === 'Environment'? 'bg-green-100 text-green-800' : 
+                    selectedIssue.category === 'Transportation'? 'bg-yellow-100 text-yellow-800' :
+                    'bg-purple-100 text-purple-800'
                   }`}>
                     {selectedIssue.category}
                   </span>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    selectedIssue.status === 'Resolved' ? 'bg-success text-white' :
-                    selectedIssue.status === 'In Progress'? 'bg-warning text-white' : 'bg-secondary text-white'
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    selectedIssue.status === 'Resolved' ? 'bg-success/10 text-success border border-success/20' :
+                    selectedIssue.status === 'In Progress'? 'bg-primary/10 text-primary border border-primary/20' : 
+                    'bg-warning/10 text-warning border border-warning/20'
                   }`}>
                     {selectedIssue.status}
                   </span>
@@ -138,39 +106,48 @@ const MapContainer = ({ filteredIssues, onIssueSelect, selectedIssue }) => {
               </div>
               <button
                 onClick={() => onIssueSelect(null)}
-                className="flex items-center justify-center w-6 h-6 text-text-secondary hover:text-foreground civic-transition"
+                className="flex items-center justify-center w-8 h-8 text-text-secondary hover:text-foreground hover:bg-muted rounded-lg civic-transition"
               >
-                <Icon name="X" size={16} />
+                <Icon name="X" size={18} />
               </button>
             </div>
             
-            <p className="text-sm text-text-secondary mb-3 line-clamp-2">
+            <p className="text-sm text-text-secondary mb-4 line-clamp-3">
               {selectedIssue.description}
             </p>
             
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4 text-sm text-text-secondary">
-                <div className="flex items-center space-x-1">
-                  <Icon name="ThumbsUp" size={14} />
-                  <span>{selectedIssue.votes}</span>
+            <div className="flex items-center justify-between pt-4 border-t border-border">
+              <div className="flex items-center space-x-5 text-sm text-text-secondary">
+                <div className="flex items-center space-x-2">
+                  <Icon name="ThumbsUp" size={16} />
+                  <span className="font-medium">{selectedIssue.votes}</span>
                 </div>
-                <div className="flex items-center space-x-1">
-                  <Icon name="MessageSquare" size={14} />
-                  <span>{selectedIssue.comments}</span>
+                <div className="flex items-center space-x-2">
+                  <Icon name="MessageSquare" size={16} />
+                  <span className="font-medium">{selectedIssue.comments}</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Icon name="MapPin" size={16} />
+                  <span className="font-medium text-xs">{selectedIssue.address}</span>
                 </div>
               </div>
-              <button className="text-primary text-sm font-medium hover:text-primary/80 civic-transition">
-                View Details
-              </button>
             </div>
+            
+            <button className="w-full mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 civic-transition">
+              View Full Details
+            </button>
           </div>
         </div>
       )}
 
       {/* Cluster Info */}
-      <div className="absolute top-4 left-4 bg-surface border border-border rounded-lg shadow-sm px-3 py-2">
-        <div className="text-sm font-medium text-foreground">
-          {filteredIssues.length} Issues Found
+      <div className="absolute top-4 left-4 bg-surface border border-border rounded-lg shadow-lg px-4 py-3 z-[1000]">
+        <div className="text-sm font-semibold text-foreground flex items-center space-x-2">
+          <Icon name="MapPin" size={16} className="text-primary" />
+          <span>{filteredIssues.length} {filteredIssues.length === 1 ? 'Issue' : 'Issues'} in View</span>
+        </div>
+        <div className="text-xs text-text-secondary mt-1">
+          Zoom Level: {zoomLevel}
         </div>
       </div>
     </div>

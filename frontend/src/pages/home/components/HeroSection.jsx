@@ -21,14 +21,14 @@ const HeroSection = () => {
             </p>
             
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-8">
               <Link to="/report-issue">
                 <Button 
                   variant="default" 
                   size="lg" 
                   iconName="Plus" 
                   iconPosition="left"
-                  className="w-full sm:w-auto"
+                  className="w-full sm:w-auto shadow-lg hover:shadow-xl"
                 >
                   Report an Issue
                 </Button>
@@ -45,16 +45,32 @@ const HeroSection = () => {
                 </Button>
               </Link>
             </div>
+
+            {/* Trust Indicators */}
+            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-6 text-sm text-text-secondary">
+              <div className="flex items-center space-x-2">
+                <Icon name="CheckCircle" size={18} className="text-success" />
+                <span>Free to use</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Icon name="Shield" size={18} className="text-primary" />
+                <span>Secure & Private</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Icon name="Users" size={18} className="text-accent" />
+                <span>5,000+ Active Users</span>
+              </div>
+            </div>
           </div>
 
           {/* Image */}
           <div className="relative">
-            <div className="relative bg-white rounded-2xl p-8 civic-shadow-card">
+            <div className="relative bg-white rounded-2xl p-8 civic-shadow-card hover:shadow-2xl civic-transition">
               <div className="aspect-square bg-gradient-to-br from-primary/10 to-accent/10 rounded-xl flex items-center justify-center overflow-hidden">
                 <img 
                   src={communityImg} 
                   alt="Community Voice" 
-                  className="w-full h-full object-cover rounded-xl"
+                  className="w-full h-full object-cover rounded-xl hover:scale-105 civic-transition"
                 />
               </div>
             </div>

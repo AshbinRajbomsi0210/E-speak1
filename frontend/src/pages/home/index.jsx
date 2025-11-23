@@ -5,6 +5,9 @@ import HeroSection from './components/HeroSection';
 import HowItWorksSection from './components/HowItWorksSection';
 import ImpactMetricsSection from './components/ImpactMetricsSection';
 import RecentReportsSection from './components/RecentReportsSection';
+import TestimonialsSection from './components/TestimonialsSection';
+import CTASection from './components/CTASection';
+import NewsletterSection from './components/NewsletterSection';
 
 const Home = () => {
   return (
@@ -25,6 +28,9 @@ const Home = () => {
           <HowItWorksSection />
           <ImpactMetricsSection />
           <RecentReportsSection />
+          <TestimonialsSection />
+          <CTASection />
+          <NewsletterSection />
         </main>
 
         {/* Footer */}
@@ -84,7 +90,7 @@ const Home = () => {
             {/* Bottom Bar */}
             <div className="pt-8 border-t border-gray-700 flex flex-col md:flex-row justify-between items-center">
               <p className="text-gray-300 text-sm">
-                © {new Date()?.getFullYear()} E-speak. All rights reserved.
+                © {new Date().getFullYear()} E-speak. All rights reserved.
               </p>
               <p className="text-gray-300 text-sm mt-2 md:mt-0">
                 Building stronger communities together
