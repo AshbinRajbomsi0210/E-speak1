@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
+import PollDetailModal from './PollDetailModal';
 
 const PollCard = ({ poll, onVote }) => {
   const [selectedOption, setSelectedOption] = useState(null);
   const [hasVoted, setHasVoted] = useState(poll?.hasUserVoted);
+  const [showDetail, setShowDetail] = useState(false);
 
   const handleVote = () => {
     if (selectedOption !== null && !hasVoted) {
@@ -37,11 +39,12 @@ const PollCard = ({ poll, onVote }) => {
   };
 
   return (
-    <div className="civic-card p-6 space-y-4">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <h3 className="text-lg font-semibold text-foreground mb-2">{poll?.title}</h3>
-          <p className="text-text-secondary text-sm mb-3">{poll?.description}</p>
+    <>
+      <div className="civic-card p-6 space-y-4 cursor-pointer hover:shadow-lg civic-transition" onClick={() => setShowDetail(true)}>
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-foreground mb-2">{poll?.title}</h3>
+            <p className="text-text-secondary text-sm mb-3 line-clamp-2">{poll?.description}</p>
           
           <div className="flex items-center space-x-4 text-xs text-text-secondary">
             <span className="flex items-center space-x-1">
@@ -61,16 +64,16 @@ const PollCard = ({ poll, onVote }) => {
         </div>
         
         <div className="flex items-center space-x-2">
-          <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setShowDetail(true); }}>
             <Icon name="MessageCircle" size={16} />
             <span className="ml-1">{poll?.commentsCount}</span>
           </Button>
-          <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
             <Icon name="Share2" size={16} />
           </Button>
         </div>
       </div>
-      <div className="space-y-3">
+      <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
         {poll?.options?.map((option, index) => (
           <div key={index} className="space-y-2">
             <div className="flex items-center justify-between">
@@ -125,7 +128,15 @@ const PollCard = ({ poll, onVote }) => {
           <span className="text-sm text-success font-medium">✓ You have voted</span>
         </div>
       )}
-    </div>
+      </div>
+
+      <PollDetailModal
+        poll={poll}
+        isOpen={showDetail}
+        onClose={() => setShowDetail(false)}
+        onVote={onVote}
+      />
+    </>
   );
 };
 

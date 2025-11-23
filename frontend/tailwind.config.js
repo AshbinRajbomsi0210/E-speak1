@@ -18,7 +18,7 @@ export default {
     },
     extend: {
       colors: {
-        border: 'var(--border, #e5e7eb)', /* light slate */
+        border: "var(--color-border)", /* light slate */
         input: "var(--color-input)", /* pure white */
         ring: "var(--color-ring)", /* deep civic blue */
         background: "var(--color-background)", /* warm off-white */
@@ -137,9 +137,6 @@ export default {
         '90': '90',
         '100': '100',
       },
-    },
-    borderColor: {
-      DEFAULT: 'var(--border, #e5e7eb)', // Ensure default border color is set
     },
   },
   plugins: [

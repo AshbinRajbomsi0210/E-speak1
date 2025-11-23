@@ -13,7 +13,7 @@
     --color-foreground: #1E293B; /* rich charcoal */
     --color-border: #E2E8F0; /* light slate */
     --color-input: #FFFFFF; /* pure white */
-    --color-ring: #2563EB; /* deep civic blue */
+    --color-ring: #16A34A; /* green 600 - theme ring */
     
     /* Card Colors */
     --color-card: #FFFFFF; /* pure white */
@@ -28,7 +28,7 @@
     --color-muted-foreground: #64748B; /* muted slate */
     
     /* Primary Colors */
-    --color-primary: #2563EB; /* deep civic blue */
+    --color-primary: #16A34A; /* green 600 */
     --color-primary-foreground: #FFFFFF; /* white */
     
     /* Secondary Colors */
@@ -36,7 +36,7 @@
     --color-secondary-foreground: #FFFFFF; /* white */
     
     /* Accent Colors */
-    --color-accent: #059669; /* success-oriented emerald */
+    --color-accent: #059669; /* emerald (kept for accents) */
     --color-accent-foreground: #FFFFFF; /* white */
     
     /* Success Colors */
