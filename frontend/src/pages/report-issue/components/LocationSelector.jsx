@@ -7,7 +7,7 @@ import InteractiveMap from '../../../components/InteractiveMap';
 const LocationSelector = ({ location, onLocationChange }) => {
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
-  const [mapCenter, setMapCenter] = useState({ lat: 27.7172, lng: 85.3240 }); // Default to Kathmandu
+  const [mapCenter, setMapCenter] = useState({ lat: 27.7172, lng: 85.3240 }); 
   const [zoomLevel, setZoomLevel] = useState(12);
 
   useEffect(() => {

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Issue, IssuePhoto
+from .models import Issue, IssuePhoto, IssueVote
 
 class IssuePhotoSerializer(serializers.ModelSerializer):
     class Meta:
@@ -17,6 +17,6 @@ class IssueSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'report_id', 'title', 'description', 'category', 'priority',
             'reporterName', 'reporterEmail', 'reporterPhone',
-            'address', 'status', 'created_at', 'photos'
+            'address', 'latitude', 'longitude', 'status', 'upvotes', 'created_at', 'photos'
         ]
-        read_only_fields = ('id', 'report_id', 'status', 'created_at')
+        read_only_fields = ('id', 'report_id', 'status', 'upvotes', 'created_at')

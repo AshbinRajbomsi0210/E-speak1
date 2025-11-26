@@ -20,190 +20,73 @@ const MapView = () => {
     minVotes: 0,
     showResolved: true
   });
+  const [issues, setIssues] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Mock issues data - Nepal locations
-  const mockIssues = [
-  {
-    id: 1,
-    title: "Pothole on Lakeside Road causing traffic delays",
-    description: "Large pothole near the intersection of Lakeside Road in Pokhara is causing significant traffic delays and potential vehicle damage. Multiple residents have reported this issue.",
-    category: "Infrastructure",
-    status: "Open",
-    priority: "high",
-    votes: 23,
-    comments: 8,
-    location: { lat: 28.2096, lng: 83.9856 }, // Pokhara Lakeside
-    address: "Lakeside Road, Pokhara, Kaski",
-    reportedBy: "Sarah Johnson",
-    reportedDate: "2025-11-08T10:30:00Z",
-    image: "https://images.unsplash.com/photo-1728340964368-59c3192e44e6",
-    imageAlt: "Large pothole in asphalt road with visible damage and debris"
-  },
-  {
-    id: 2,
-    title: "Broken streetlight creating safety hazard",
-    description: "Streetlight at Durbar Marg has been non-functional for over a week, creating a safety concern for pedestrians during evening hours.",
-    category: "Public Safety",
-    status: "In Progress",
-    priority: "medium",
-    votes: 15,
-    comments: 4,
-    location: { lat: 27.7024, lng: 85.3200 }, // Durbar Marg, Kathmandu
-    address: "Durbar Marg, Kathmandu",
-    reportedBy: "Michael Chen",
-    reportedDate: "2025-11-07T14:15:00Z",
-    image: "https://images.unsplash.com/photo-1699028979799-72e40a73fdfd",
-    imageAlt: "Dark street corner with non-functioning streetlight pole at night"
-  },
-  {
-    id: 3,
-    title: "Illegal dumping near Phewa Lake",
-    description: "Construction debris and household waste have been illegally dumped near Phewa Lake area, affecting the environment and scenic beauty.",
-    category: "Environment",
-    status: "Under Review",
-    priority: "medium",
-    votes: 31,
-    comments: 12,
-    location: { lat: 28.2090, lng: 83.9590 }, // Phewa Lake, Pokhara
-    address: "Phewa Lake Area, Pokhara",
-    reportedBy: "Emily Rodriguez",
-    reportedDate: "2025-11-06T09:45:00Z",
-    image: "https://images.unsplash.com/photo-1686853301512-66ac40f1e3e5",
-    imageAlt: "Pile of construction debris and household waste dumped near park entrance"
-  },
-  {
-    id: 4,
-    title: "Traffic signal malfunction at busy intersection",
-    description: "Traffic light system at New Baneshwor intersection is malfunctioning, causing confusion and potential accidents during rush hour.",
-    category: "Transportation",
-    status: "Open",
-    priority: "high",
-    votes: 45,
-    comments: 18,
-    location: { lat: 27.6915, lng: 85.3446 }, // New Baneshwor, Kathmandu
-    address: "New Baneshwor, Kathmandu",
-    reportedBy: "David Park",
-    reportedDate: "2025-11-09T16:20:00Z",
-    image: "https://images.unsplash.com/photo-1567563549378-81212b9631e4",
-    imageAlt: "Busy intersection with malfunctioning traffic lights and confused pedestrians"
-  },
-  {
-    id: 5,
-    title: "Graffiti vandalism on public building",
-    description: "Extensive graffiti has appeared on the community building wall in Thamel, requiring professional cleaning and restoration.",
-    category: "Public Safety",
-    status: "Resolved",
-    priority: "low",
-    votes: 8,
-    comments: 3,
-    location: { lat: 27.7145, lng: 85.3121 }, // Thamel, Kathmandu
-    address: "Thamel, Kathmandu",
-    reportedBy: "Lisa Thompson",
-    reportedDate: "2025-11-05T11:30:00Z",
-    image: "https://images.unsplash.com/photo-1545558477-860f4ce119a8",
-    imageAlt: "Brick wall of public building covered with colorful graffiti tags"
-  },
-  {
-    id: 6,
-    title: "Sidewalk crack creating accessibility issues",
-    description: "Large crack in sidewalk near Mahendra Pool is making it difficult for wheelchair users and people with mobility aids to navigate safely.",
-    category: "Infrastructure",
-    status: "In Progress",
-    priority: "medium",
-    votes: 19,
-    comments: 7,
-    location: { lat: 28.2144, lng: 83.9733 }, // Mahendra Pool, Pokhara
-    address: "Mahendra Pool, Pokhara",
-    reportedBy: "Robert Kim",
-    reportedDate: "2025-11-08T13:45:00Z",
-    image: "https://images.unsplash.com/photo-1498857228921-1140c960770c",
-    imageAlt: "Cracked concrete sidewalk with visible gap creating accessibility barrier"
-  },
-  {
-    id: 7,
-    title: "Water main leak flooding street",
-    description: "Underground water pipeline has burst at Pulchowk, causing street flooding and potential water service disruption to nearby buildings.",
-    category: "Utilities",
-    status: "Open",
-    priority: "high",
-    votes: 67,
-    comments: 25,
-    location: { lat: 27.6789, lng: 85.3169 }, // Pulchowk, Lalitpur
-    address: "Pulchowk, Lalitpur",
-    reportedBy: "Maria Gonzalez",
-    reportedDate: "2025-11-10T06:15:00Z",
-    image: "https://images.unsplash.com/photo-1665905270352-37f4e1c008c4",
-    imageAlt: "Street flooded with water from burst underground pipe with emergency barriers"
-  },
-  {
-    id: 8,
-    title: "Noise pollution from construction site",
-    description: "Construction work starting before permitted hours is causing noise disturbance to residential area in Birauta, violating city regulations.",
-    category: "Public Safety",
-    status: "Under Review",
-    priority: "low",
-    votes: 12,
-    comments: 6,
-    location: { lat: 28.2380, lng: 83.9858 }, // Birauta, Pokhara
-    address: "Birauta, Pokhara",
-    reportedBy: "James Wilson",
-    reportedDate: "2025-11-09T07:30:00Z",
-    image: "https://images.unsplash.com/photo-1735158895758-41156f9d00c0",
-    imageAlt: "Construction site with heavy machinery and workers in residential neighborhood"
-  }];
+  // Fetch issues from backend
+  useEffect(() => {
+    fetchIssues();
+  }, [filters]);
 
-
-  // Filter issues based on current filters
-  const getFilteredIssues = () => {
-    return mockIssues?.filter((issue) => {
-      // Category filter
-      if (filters?.categories?.length > 0 && !filters?.categories?.includes(issue?.category)) {
-        return false;
+  const fetchIssues = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/api/issues/list/`);
+      const data = await response.json();
+      
+      if (data.success) {
+        const transformedIssues = data.data
+          .filter(issue => issue.latitude && issue.longitude)
+          .map(issue => ({
+            id: issue.id,
+            title: issue.title,
+            description: issue.description,
+            category: issue.category,
+            status: issue.status,
+            priority: issue.priority?.toLowerCase(),
+            votes: 0,
+            comments: 0,
+            location: { 
+              lat: parseFloat(issue.latitude), 
+              lng: parseFloat(issue.longitude) 
+            },
+            address: issue.address,
+            reportedBy: issue.reporterName || 'Anonymous',
+            reportedDate: issue.created_at,
+            images: issue.photos?.map(p => p.image) || []
+          }));
+        
+        setIssues(applyClientSideFilters(transformedIssues));
       }
+    } catch (error) {
+      console.error('Error fetching issues:', error);
+      setIssues([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-      // Status filter
-      if (filters?.statuses?.length > 0 && !filters?.statuses?.includes(issue?.status)) {
-        return false;
-      }
+  const applyClientSideFilters = (issuesList) => {
+    return issuesList.filter((issue) => {
+      if (filters.categories.length > 0 && !filters.categories.includes(issue.category)) return false;
+      if (filters.statuses.length > 0 && !filters.statuses.includes(issue.status)) return false;
+      if (filters.priority && issue.priority !== filters.priority) return false;
+      if (issue.votes < filters.minVotes) return false;
+      if (!filters.showResolved && issue.status === 'Resolved') return false;
 
-      // Priority filter
-      if (filters?.priority && issue?.priority !== filters?.priority) {
-        return false;
-      }
-
-      // Votes filter
-      if (issue?.votes < filters?.minVotes) {
-        return false;
-      }
-
-      // Show resolved filter
-      if (!filters?.showResolved && issue?.status === 'Resolved') {
-        return false;
-      }
-
-      // Date range filter (simplified)
       const issueDate = new Date(issue.reportedDate);
       const now = new Date();
-
-      switch (filters?.dateRange) {
-        case 'today':
-          return issueDate?.toDateString() === now?.toDateString();
-        case 'week':
-          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          return issueDate >= weekAgo;
-        case 'month':
-          const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-          return issueDate >= monthAgo;
-        case 'quarter':
-          const quarterAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-          return issueDate >= quarterAgo;
-        default:
-          return true;
+      switch (filters.dateRange) {
+        case 'today': return issueDate.toDateString() === now.toDateString();
+        case 'week': return issueDate >= new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        case 'month': return issueDate >= new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        case 'quarter': return issueDate >= new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        default: return true;
       }
     });
   };
 
-  const filteredIssues = getFilteredIssues();
+  const filteredIssues = issues;
 
   const handleLocationSearch = (location) => {
     console.log('Searching for location:', location);
@@ -211,12 +94,11 @@ const MapView = () => {
   };
 
   const handleIssueSearch = (query) => {
-    const results = mockIssues?.filter((issue) =>
-    issue?.title?.toLowerCase()?.includes(query?.toLowerCase()) ||
-    issue?.description?.toLowerCase()?.includes(query?.toLowerCase())
+    const results = issues.filter((issue) =>
+      issue.title?.toLowerCase().includes(query.toLowerCase()) ||
+      issue.description?.toLowerCase().includes(query.toLowerCase())
     );
     setSearchResults(results);
-    console.log('Issue search results:', results);
   };
 
   const handleClearFilters = () => {
@@ -254,7 +136,7 @@ const MapView = () => {
               {/* Filter Toggle & Stats */}
               <div className="flex items-center space-x-3">
                 <div className="hidden md:flex items-center space-x-2 text-sm text-text-secondary">
-                  <span>Showing {filteredIssues?.length} of {mockIssues?.length} issues</span>
+                  <span>Showing {filteredIssues.length} issues</span>
                 </div>
                 
                 <button
@@ -289,7 +171,7 @@ const MapView = () => {
             {/* Map Stats - Desktop Only */}
             <div className="hidden xl:block absolute top-4 left-4 w-64">
               <MapStats
-                totalIssues={mockIssues?.length}
+                totalIssues={issues.length}
                 filteredIssues={filteredIssues}
                 filters={filters} />
 
@@ -312,7 +194,7 @@ const MapView = () => {
       {isFilterPanelOpen &&
       <div className="xl:hidden fixed bottom-20 left-4 right-4 z-40">
           <MapStats
-          totalIssues={mockIssues?.length}
+          totalIssues={issues.length}
           filteredIssues={filteredIssues}
           filters={filters} />
 

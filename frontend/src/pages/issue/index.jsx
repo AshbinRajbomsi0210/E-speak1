@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import Header from '../../components/ui/Header';
 import Button from '../../components/ui/Button';
 import Icon from '../../components/AppIcon';
@@ -10,7 +11,10 @@ import LoadingCard from './components/LoadingCard';
 import EmptyState from './components/EmptyState';
 
 const Issues = () => {
+  const navigate = useNavigate();
+  const { authenticated, user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
+  const [issues, setIssues] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
@@ -18,204 +22,170 @@ const Issues = () => {
   const [sortBy, setSortBy] = useState('newest');
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
 
-  // Mock data for issues
-  const mockIssues = [
-  {
-    id: 1,
-    title: "Broken streetlight on Main Street causing safety concerns",
-    description: "The streetlight at the intersection of Main Street and Oak Avenue has been out for over a week. This creates a dangerous situation for pedestrians and drivers, especially during evening hours when visibility is poor.",
-    category: "Infrastructure",
-    status: "Under Review",
-    priority: "High",
-    location: "Main Street & Oak Avenue",
-    image: "https://images.unsplash.com/photo-1706999924865-629affa7b28f",
-    imageAlt: "Dark street intersection with broken streetlight at night showing poor visibility",
-    votes: 47,
-    comments: 12,
-    hasVoted: true,
-    timeAgo: "3 days ago",
-    reporter: {
-      name: "Sarah Johnson",
-      avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_1ae7d9bdc-1762274136565.png",
-      avatarAlt: "Professional headshot of woman with brown hair in white blouse smiling at camera"
-    },
-    createdAt: new Date('2025-11-07')
-  },
-  {
-    id: 2,
-    title: "Potholes on Elm Street need immediate repair",
-    description: "Multiple large potholes have formed on Elm Street between 2nd and 5th Avenue. These are causing damage to vehicles and creating hazardous driving conditions during both day and night.",
-    category: "Infrastructure",
-    status: "In Discussion",
-    priority: "Medium",
-    location: "Elm Street (2nd-5th Ave)",
-    image: "https://images.unsplash.com/photo-1728340964368-59c3192e44e6",
-    imageAlt: "Large pothole in asphalt road surface with visible damage and debris",
-    votes: 32,
-    comments: 8,
-    hasVoted: false,
-    timeAgo: "5 days ago",
-    reporter: {
-      name: "Michael Chen",
-      avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_129d823fe-1762249053422.png",
-      avatarAlt: "Professional headshot of Asian man with glasses in navy blue shirt"
-    },
-    createdAt: new Date('2025-11-05')
-  },
-  {
-    id: 3,
-    title: "Illegal dumping in Riverside Park affecting wildlife",
-    description: "Construction debris and household waste have been illegally dumped near the river in Riverside Park. This is harming local wildlife and polluting the water source that many animals depend on.",
-    category: "Environment",
-    status: "Adopted",
-    priority: "High",
-    location: "Riverside Park, North Trail",
-    image: "https://images.unsplash.com/photo-1686853301512-66ac40f1e3e5",
-    imageAlt: "Pile of construction debris and trash dumped in natural park setting near water",
-    votes: 89,
-    comments: 23,
-    hasVoted: true,
-    timeAgo: "1 week ago",
-    reporter: {
-      name: "Emily Rodriguez",
-      avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_1beb9fc75-1762273370028.png",
-      avatarAlt: "Professional headshot of Hispanic woman with long dark hair in green blouse"
-    },
-    createdAt: new Date('2025-11-03')
-  },
-  {
-    id: 4,
-    title: "Bus stop shelter damaged and needs replacement",
-    description: "The bus shelter at the corner of Pine Street has broken glass panels and a damaged roof. Commuters are exposed to weather conditions while waiting for public transportation.",
-    category: "Transportation",
-    status: "Resolved",
-    priority: "Medium",
-    location: "Pine Street Bus Stop #47",
-    image: "https://images.unsplash.com/photo-1704392354269-42ad41f15398",
-    imageAlt: "Damaged bus shelter with broken glass panels and people waiting in rain",
-    votes: 28,
-    comments: 6,
-    hasVoted: false,
-    timeAgo: "2 weeks ago",
-    reporter: {
-      name: "David Thompson",
-      avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_14c9d469d-1762249131541.png",
-      avatarAlt: "Professional headshot of Caucasian man with beard in dark blue suit jacket"
-    },
-    createdAt: new Date('2025-10-27')
-  },
-  {
-    id: 5,
-    title: "Playground equipment safety inspection needed",
-    description: "Several pieces of playground equipment at Central Park show signs of wear and potential safety hazards. The swing set chains are rusted and the slide has sharp edges that could injure children.",
-    category: "Public Safety",
-    status: "Under Review",
-    priority: "High",
-    location: "Central Park Playground",
-    image: "https://images.unsplash.com/photo-1591729982144-318ad4370809",
-    imageAlt: "Old playground equipment with rusted swing chains and worn slide in park setting",
-    votes: 56,
-    comments: 15,
-    hasVoted: true,
-    timeAgo: "4 days ago",
-    reporter: {
-      name: "Lisa Park",
-      avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_1b2720bf6-1762273579122.png",
-      avatarAlt: "Professional headshot of Asian woman with short black hair in light blue shirt"
-    },
-    createdAt: new Date('2025-11-06')
-  },
-  {
-    id: 6,
-    title: "Noise pollution from construction site exceeding limits",
-    description: "The construction site on Broadway is operating heavy machinery before 7 AM and after 6 PM, violating city noise ordinances and disturbing residents in the surrounding neighborhood.",
-    category: "Public Safety",
-    status: "In Discussion",
-    priority: "Medium",
-    location: "Broadway Construction Site",
-    image: "https://images.unsplash.com/photo-1724042302560-a300d22aea08",
-    imageAlt: "Construction site with heavy machinery and workers during early morning hours",
-    votes: 41,
-    comments: 19,
-    hasVoted: false,
-    timeAgo: "6 days ago",
-    reporter: {
-      name: "Robert Wilson",
-      avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_13733d06f-1762274568462.png",
-      avatarAlt: "Professional headshot of African American man in white dress shirt and tie"
-    },
-    createdAt: new Date('2025-11-04')
-  }];
+  // Fetch issues from backend
+  useEffect(() => {
+    fetchIssues();
+  }, [selectedCategory, selectedStatus, selectedPriority, searchQuery, sortBy]);
 
+  // Check user votes after issues are loaded
+  useEffect(() => {
+    if (authenticated && user?.email && issues.length > 0) {
+      checkUserVotes();
+    }
+  }, [authenticated, user, issues.length]);
+
+  const checkUserVotes = async () => {
+    if (!user?.email) return;
+
+    try {
+      const voteChecks = issues.map(issue => 
+        fetch(`http://127.0.0.1:8000/api/issues/${issue.id}/check-upvote/?voter_email=${encodeURIComponent(user.email)}`)
+          .then(res => res.json())
+          .then(data => ({ issueId: issue.id, hasVoted: data.data?.has_voted || false }))
+          .catch(() => ({ issueId: issue.id, hasVoted: false }))
+      );
+
+      const results = await Promise.all(voteChecks);
+      
+      setIssues(prev => prev.map(issue => {
+        const voteStatus = results.find(r => r.issueId === issue.id);
+        return voteStatus ? { ...issue, hasVoted: voteStatus.hasVoted } : issue;
+      }));
+    } catch (error) {
+      console.error('Error checking votes:', error);
+    }
+  };
+
+  const fetchIssues = async () => {
+    setIsLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (selectedCategory !== 'all') params.append('category', selectedCategory);
+      if (selectedStatus !== 'all') params.append('status', selectedStatus);
+      if (selectedPriority !== 'all') params.append('priority', selectedPriority);
+      if (searchQuery) params.append('search', searchQuery);
+      if (sortBy) params.append('sort', sortBy);
+
+      const response = await fetch(`http://127.0.0.1:8000/api/issues/list/?${params.toString()}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        // Transform backend data to match frontend format
+        const transformedIssues = data.data.map(issue => ({
+          id: issue.id,
+          reportId: issue.report_id,
+          title: issue.title,
+          description: issue.description,
+          category: issue.category,
+          status: issue.status,
+          priority: issue.priority,
+          location: issue.address,
+          latitude: issue.latitude,
+          longitude: issue.longitude,
+          images: issue.photos?.map(p => p.image) || [],
+          votes: issue.upvotes || 0,
+          comments: 0, // Will be implemented with comments system
+          hasVoted: false, // Will check on mount
+          timeAgo: getTimeAgo(new Date(issue.created_at)),
+          reporter: {
+            name: issue.reporterName || 'Anonymous',
+            avatar: null,
+            avatarAlt: ''
+          },
+          createdAt: new Date(issue.created_at)
+        }));
+        setIssues(transformedIssues);
+      }
+    } catch (error) {
+      console.error('Error fetching issues:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getTimeAgo = (date) => {
+    const seconds = Math.floor((new Date() - date) / 1000);
+    const intervals = {
+      year: 31536000,
+      month: 2592000,
+      week: 604800,
+      day: 86400,
+      hour: 3600,
+      minute: 60
+    };
+
+    for (const [unit, secondsInUnit] of Object.entries(intervals)) {
+      const interval = Math.floor(seconds / secondsInUnit);
+      if (interval >= 1) {
+        return `${interval} ${unit}${interval === 1 ? '' : 's'} ago`;
+      }
+    }
+    return 'just now';
+  };
 
   // Calculate stats
   const stats = useMemo(() => {
-    const total = mockIssues?.length;
-    const inDiscussion = mockIssues?.filter((issue) => issue?.status === 'In Discussion')?.length;
-    const underReview = mockIssues?.filter((issue) => issue?.status === 'Under Review')?.length;
-    const resolved = mockIssues?.filter((issue) => issue?.status === 'Resolved')?.length;
+    const total = issues?.length;
+    const inDiscussion = issues?.filter((issue) => issue?.status === 'In Discussion')?.length;
+    const underReview = issues?.filter((issue) => issue?.status === 'Under Review')?.length;
+    const resolved = issues?.filter((issue) => issue?.status === 'Resolved')?.length;
 
     return { total, inDiscussion, underReview, resolved };
-  }, [mockIssues]);
+  }, [issues]);
 
-  // Filter and sort issues
+  // Filter issues (already filtered by backend, but keep for local search)
   const filteredIssues = useMemo(() => {
-    let filtered = mockIssues?.filter((issue) => {
-      const matchesSearch = searchQuery === '' ||
-      issue?.title?.toLowerCase()?.includes(searchQuery?.toLowerCase()) ||
-      issue?.description?.toLowerCase()?.includes(searchQuery?.toLowerCase()) ||
-      issue?.location?.toLowerCase()?.includes(searchQuery?.toLowerCase());
-
-      const matchesCategory = selectedCategory === 'all' || issue?.category === selectedCategory;
-      const matchesStatus = selectedStatus === 'all' || issue?.status === selectedStatus;
-      const matchesPriority = selectedPriority === 'all' || issue?.priority === selectedPriority;
-
-      return matchesSearch && matchesCategory && matchesStatus && matchesPriority;
-    });
-
-    // Sort issues
-    filtered?.sort((a, b) => {
-      switch (sortBy) {
-        case 'oldest':
-          return new Date(a.createdAt) - new Date(b.createdAt);
-        case 'most-voted':
-          return b?.votes - a?.votes;
-        case 'most-commented':
-          return b?.comments - a?.comments;
-        case 'priority':
-          const priorityOrder = { 'High': 3, 'Medium': 2, 'Low': 1 };
-          return priorityOrder?.[b?.priority] - priorityOrder?.[a?.priority];
-        case 'newest':
-        default:
-          return new Date(b.createdAt) - new Date(a.createdAt);
-      }
-    });
-
-    return filtered;
-  }, [mockIssues, searchQuery, selectedCategory, selectedStatus, selectedPriority, sortBy]);
+    return issues;
+  }, [issues]);
 
   const hasActiveFilters = selectedCategory !== 'all' ||
   selectedStatus !== 'all' ||
   selectedPriority !== 'all' ||
   searchQuery?.length > 0;
 
-  // Simulate loading
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
+  const handleVote = async (issueId) => {
+    if (!authenticated) {
+      navigate('/login', { state: { from: '/issues' } });
+      return;
+    }
 
-    return () => clearTimeout(timer);
-  }, []);
+    const issue = issues.find(i => i.id === issueId);
+    if (!issue) return;
 
-  const handleVote = (issueId) => {
-    console.log('Voting on issue:', issueId);
-    // In a real app, this would make an API call
+    try {
+      const endpoint = issue.hasVoted 
+        ? `http://127.0.0.1:8000/api/issues/${issueId}/remove-upvote/`
+        : `http://127.0.0.1:8000/api/issues/${issueId}/upvote/`;
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ voter_email: user?.email })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // Update local state
+        setIssues(prev => prev.map(item => 
+          item.id === issueId
+            ? { ...item, votes: data.data.upvotes, hasVoted: !item.hasVoted }
+            : item
+        ));
+      } else {
+        alert(data.message || 'Failed to update vote');
+      }
+    } catch (error) {
+      console.error('Error voting:', error);
+      alert('Error updating vote');
+    }
   };
 
   const handleComment = (issueId) => {
     console.log('Commenting on issue:', issueId);
-    // In a real app, this would navigate to issue detail or open comment modal
+    // Will be implemented with comments system
   };
 
   const handleClearFilters = () => {
@@ -287,7 +257,7 @@ const Issues = () => {
           {!isLoading &&
           <div className="flex items-center justify-between py-4">
               <p className="text-sm text-text-secondary">
-                Showing {filteredIssues?.length} of {mockIssues?.length} issues
+                Showing {filteredIssues?.length} issues
               </p>
               
               {hasActiveFilters &&

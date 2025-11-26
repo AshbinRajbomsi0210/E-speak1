@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation, Link } from 'react-router-dom';
 import LoginForm from './components/Loginform';
 import Icon from '../../components/AppIcon';
 import { useAuth } from '../../context/AuthContext';
@@ -7,13 +7,15 @@ import { useAuth } from '../../context/AuthContext';
 const Login = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const { authenticated } = useAuth();
+  const from = location.state?.from;
 
   useEffect(() => {
     if (authenticated) {
-      navigate('/profile');
+      navigate(from || '/profile');
     }
-  }, [authenticated, navigate]);
+  }, [authenticated, navigate, from]);
 
   return (
     <div className="min-h-screen flex">
@@ -95,10 +97,18 @@ const Login = () => {
             <p className="text-text-secondary">
               Enter your credentials to access your account
             </p>
+            {from && (
+              <div className="mt-4 p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                <p className="text-sm text-primary">
+                  <Icon name="Lock" size={16} className="inline mr-1" />
+                  Please sign in to report issues
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Login Form */}
-          <LoginForm forcedRole={searchParams.get('role')} />
+          <LoginForm forcedRole={searchParams.get('role')} redirectTo={from} />
 
           {/* Sign Up Link */}
           <div className="text-center pt-6 border-t border-border">

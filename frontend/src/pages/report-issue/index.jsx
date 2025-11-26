@@ -1,15 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import Header from '../../components/ui/Header';
 import IssueForm from './components/IssueForm';
 import PhotoUpload from './components/PhotoUpload';
+import LocationSelector from './components/LocationSelector';
 import AIAssistant from './components/AIAssistant';
 import ProgressIndicator from './components/ProgressIndicator';
+import SimilarIssues from './components/SimilarIssues';
 import Button from '../../components/ui/Button';
 import Icon from '../../components/AppIcon';
 
 const ReportIssue = () => {
   const navigate = useNavigate();
+  const { authenticated, loading, user } = useAuth();
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -19,10 +23,22 @@ const ReportIssue = () => {
     reporterEmail: '',
     reporterPhone: '',
     photos: [],
+    location: {
+      address: '',
+      coordinates: null,
+      accuracy: null
+    }
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [generatedReportId, setGeneratedReportId] = useState('');
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!loading && !authenticated) {
+      navigate('/login', { state: { from: '/report-issue' } });
+    }
+  }, [authenticated, loading, navigate]);
 
   const handleFormChange = (field, value) => {
     setFormData(prev => ({
@@ -35,6 +51,13 @@ const ReportIssue = () => {
     setFormData(prev => ({
       ...prev,
       photos
+    }));
+  };
+
+  const handleLocationChange = (location) => {
+    setFormData(prev => ({
+      ...prev,
+      location
     }));
   };
 
@@ -79,6 +102,11 @@ const ReportIssue = () => {
       formDataToSend.append('reporterEmail', formData.reporterEmail);
       if (formData.reporterPhone) formDataToSend.append('reporterPhone', formData.reporterPhone);
 
+      // Append location data
+      if (formData.location?.address) formDataToSend.append('address', formData.location.address);
+      if (formData.location?.coordinates?.lat) formDataToSend.append('latitude', formData.location.coordinates.lat);
+      if (formData.location?.coordinates?.lng) formDataToSend.append('longitude', formData.location.coordinates.lng);
+
       // Append photos
       formData.photos.forEach(photo => {
         if (photo.file) {
@@ -86,6 +114,8 @@ const ReportIssue = () => {
         }
       });
 
+      console.log('Submitting issue to backend...');
+      
       const res = await fetch('http://127.0.0.1:8000/api/issues/create/', {
         method: 'POST',
         body: formDataToSend
@@ -94,7 +124,26 @@ const ReportIssue = () => {
       if (!res.ok) {
         const errorData = await res.json();
         console.error('Error submitting report:', errorData);
-        throw new Error('Failed to submit');
+        
+        // Display specific error messages
+        if (errorData.reporterName) {
+          alert(`Reporter Name Error: ${errorData.reporterName.join(', ')}`);
+        } else if (errorData.reporterEmail) {
+          alert(`Reporter Email Error: ${errorData.reporterEmail.join(', ')}`);
+        } else if (errorData.title) {
+          alert(`Title Error: ${errorData.title.join(', ')}`);
+        } else if (errorData.description) {
+          alert(`Description Error: ${errorData.description.join(', ')}`);
+        } else if (errorData.category) {
+          alert(`Category Error: ${errorData.category.join(', ')}`);
+        } else if (errorData.priority) {
+          alert(`Priority Error: ${errorData.priority.join(', ')}`);
+        } else {
+          alert(`Failed to submit report: ${JSON.stringify(errorData)}`);
+        }
+        
+        setIsSubmitting(false);
+        return;
       }
 
       const data = await res.json();
@@ -105,7 +154,7 @@ const ReportIssue = () => {
 
     } catch (error) {
       console.error('Error submitting report:', error);
-      alert('There was an error submitting your report. Please try again.');
+      alert(`There was an error submitting your report: ${error.message}. Please make sure the backend server is running on http://127.0.0.1:8000`);
     } finally {
       setIsSubmitting(false);
     }
@@ -125,9 +174,34 @@ const ReportIssue = () => {
       reporterName: '',
       reporterEmail: '',
       reporterPhone: '',
-      photos: []
+      photos: [],
+      location: {
+        address: '',
+        coordinates: null,
+        accuracy: null
+      }
     });
   };
+
+  // Show loading state while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="pt-16 flex items-center justify-center min-h-[calc(100vh-4rem)]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-text-secondary">Loading...</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Don't render the form if not authenticated (will redirect)
+  if (!authenticated) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -147,7 +221,16 @@ const ReportIssue = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-8">
+              <SimilarIssues 
+                title={formData.title}
+                description={formData.description}
+                category={formData.category}
+                onSelectIssue={(issue) => {
+                  navigate(`/issues?id=${issue.id}`);
+                }}
+              />
               <IssueForm formData={formData} onFormChange={handleFormChange} />
+              <LocationSelector location={formData.location} onLocationChange={handleLocationChange} />
               <PhotoUpload photos={formData.photos} onPhotosChange={handlePhotosChange} />
 
               <div className="bg-card rounded-lg border border-border p-6 space-y-4">

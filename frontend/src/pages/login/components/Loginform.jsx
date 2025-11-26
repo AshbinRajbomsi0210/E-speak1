@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../../../components/ui/Button';
@@ -6,7 +7,7 @@ import { Checkbox } from '../../../components/ui/Checkbox';
 import Icon from '../../../components/AppIcon';
 import { useAuth } from '../../../context/AuthContext';
 
-const LoginForm = ({ forcedRole }) => {
+const LoginForm = ({ forcedRole, redirectTo }) => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
@@ -127,7 +128,7 @@ const LoginForm = ({ forcedRole }) => {
         // Use AuthContext signIn
         signIn(formData?.userType, { email: formData?.email });
         setSuccessMessage('Authentication successful. Redirecting...');
-        const redirectPath = (formData?.userType === 'admin' || formData?.userType === 'authority') ? '/admin' : '/profile';
+        const redirectPath = redirectTo || ((formData?.userType === 'admin' || formData?.userType === 'authority') ? '/admin' : '/profile');
         setTimeout(() => navigate(redirectPath), 900);
       } else {
         setErrors({ general: `Invalid credentials. Use ${credentials?.email} / ${credentials?.password} for ${formData?.userType} access.` });
@@ -158,7 +159,7 @@ const LoginForm = ({ forcedRole }) => {
       signIn('user', mockSocialUser);
       setSuccessMessage(`${provider[0].toUpperCase()+provider.slice(1)} login successful. Redirecting...`);
       setSocialLoading(null);
-      setTimeout(() => navigate('/profile'), 900);
+      setTimeout(() => navigate(redirectTo || '/profile'), 900);
     }, 1500);
   };
 

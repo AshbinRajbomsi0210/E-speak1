@@ -13,62 +13,8 @@ const AdminDashboard = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterCategory, setFilterCategory] = useState('all');
-  const [issues, setIssues] = useState([
-    {
-      id: 'RPT-2025-1120-001',
-      title: 'Broken streetlight on Main Street',
-      description: 'The streetlight near the intersection of Main St and 5th Ave has been out for 3 days.',
-      category: 'infrastructure',
-      priority: 'high',
-      status: 'pending',
-      reporterName: 'John Doe',
-      reporterEmail: 'john@example.com',
-      location: { address: '123 Main St, Downtown' },
-      createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-      photos: []
-    },
-    {
-      id: 'RPT-2025-1119-002',
-      title: 'Pothole on Oak Avenue',
-      description: 'Large pothole causing damage to vehicles. Approximately 2 feet in diameter.',
-      category: 'infrastructure',
-      priority: 'urgent',
-      status: 'in-progress',
-      reporterName: 'Jane Smith',
-      reporterEmail: 'jane@example.com',
-      location: { address: '456 Oak Ave, Westside' },
-      createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-      assignedTo: 'Public Works Dept',
-      photos: []
-    },
-    {
-      id: 'RPT-2025-1118-003',
-      title: 'Graffiti on community center wall',
-      description: 'Offensive graffiti on the north wall of the community center needs removal.',
-      category: 'public-safety',
-      priority: 'medium',
-      status: 'resolved',
-      reporterName: 'Mike Johnson',
-      reporterEmail: 'mike@example.com',
-      location: { address: '789 Community Blvd' },
-      createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-      resolvedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      photos: []
-    },
-    {
-      id: 'RPT-2025-1117-004',
-      title: 'Illegal dumping in park',
-      description: 'Construction debris dumped in Lincoln Park near the playground area.',
-      category: 'environment',
-      priority: 'high',
-      status: 'pending',
-      reporterName: 'Sarah Williams',
-      reporterEmail: 'sarah@example.com',
-      location: { address: 'Lincoln Park, South entrance' },
-      createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-      photos: []
-    }
-  ]);
+  const [issues, setIssues] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const [users, setUsers] = useState([
     {
@@ -148,6 +94,44 @@ const AdminDashboard = () => {
     }
   }, [role, navigate]);
 
+  // Fetch issues from backend
+  React.useEffect(() => {
+    const fetchIssues = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch('http://127.0.0.1:8000/api/issues/list/');
+        const data = await response.json();
+        
+        if (data.success) {
+          // Transform backend data to match frontend format
+          const transformedIssues = data.data.map(issue => ({
+            id: issue.report_id,
+            dbId: issue.id,
+            title: issue.title,
+            description: issue.description,
+            category: issue.category?.toLowerCase() || 'other',
+            priority: issue.priority?.toLowerCase() || 'medium',
+            status: issue.status?.toLowerCase().replace(' ', '-') || 'pending',
+            reporterName: issue.reporterName || 'Anonymous',
+            reporterEmail: issue.reporterEmail || '',
+            reporterPhone: issue.reporterPhone || '',
+            location: { address: issue.address || 'No address provided' },
+            createdAt: issue.created_at,
+            upvotes: issue.upvotes || 0,
+            photos: issue.photos || []
+          }));
+          setIssues(transformedIssues);
+        }
+      } catch (error) {
+        console.error('Error fetching issues:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchIssues();
+  }, []);
+
   const getStatusColor = (status) => {
     const colors = {
       pending: 'bg-warning/10 text-warning border-warning/30',
@@ -181,12 +165,35 @@ const AdminDashboard = () => {
     };
   };
 
-  const handleStatusChange = (issueId, newStatus) => {
-    setIssues(prev => prev.map(issue => 
-      issue.id === issueId 
-        ? { ...issue, status: newStatus, ...(newStatus === 'resolved' ? { resolvedAt: new Date().toISOString() } : {}) }
-        : issue
-    ));
+  const handleStatusChange = async (issueId, newStatus) => {
+    const issue = issues.find(i => i.id === issueId);
+    if (!issue) return;
+
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/api/issues/${issue.dbId}/update/`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (response.ok) {
+        setIssues(prev => prev.map(item => 
+          item.id === issueId 
+            ? { ...item, status: newStatus, ...(newStatus === 'resolved' ? { resolvedAt: new Date().toISOString() } : {}) }
+            : item
+        ));
+        if (selectedIssue?.id === issueId) {
+          setSelectedIssue(prev => ({ ...prev, status: newStatus }));
+        }
+      } else {
+        alert('Failed to update issue status');
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+      alert('Error updating issue status');
+    }
   };
 
   const handleAssign = (issueId, department) => {
@@ -197,10 +204,26 @@ const AdminDashboard = () => {
     ));
   };
 
-  const handleDeleteIssue = (issueId) => {
+  const handleDeleteIssue = async (issueId) => {
     if (confirm('Are you sure you want to delete this issue? This action cannot be undone.')) {
-      setIssues(prev => prev.filter(issue => issue.id !== issueId));
-      setSelectedIssue(null);
+      const issue = issues.find(i => i.id === issueId);
+      if (!issue) return;
+
+      try {
+        const response = await fetch(`http://127.0.0.1:8000/api/issues/${issue.dbId}/delete/`, {
+          method: 'DELETE',
+        });
+
+        if (response.ok) {
+          setIssues(prev => prev.filter(item => item.id !== issueId));
+          setSelectedIssue(null);
+        } else {
+          alert('Failed to delete issue');
+        }
+      } catch (error) {
+        console.error('Error deleting issue:', error);
+        alert('Error deleting issue');
+      }
     }
   };
 

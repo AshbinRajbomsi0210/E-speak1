@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Icon from '../../components/AppIcon';
+import Image from '../../components/AppImage';
 import Button from '../../components/ui/Button';
 import Header from '../../components/ui/Header';
 import PollCard from './components/PollCard';
@@ -74,8 +75,8 @@ const Community = () => {
   {
     id: 1,
     name: "Sarah Johnson",
-    avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_10c75be77-1762273997956.png",
-    avatarAlt: "Professional headshot of woman with brown hair in business attire smiling at camera",
+    avatar: "https://ui-avatars.com/api/?name=Sarah+Johnson&background=0D8ABC&color=fff",
+    avatarAlt: "Sarah Johnson avatar",
     points: 2847,
     level: "Civic Champion",
     topBadge: "Top Reporter",
@@ -84,8 +85,8 @@ const Community = () => {
   {
     id: 2,
     name: "Michael Chen",
-    avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_129d823fe-1762249053422.png",
-    avatarAlt: "Professional headshot of Asian man with glasses in navy shirt",
+    avatar: "https://ui-avatars.com/api/?name=Michael+Chen&background=6366F1&color=fff",
+    avatarAlt: "Michael Chen avatar",
     points: 2156,
     level: "Community Helper",
     topBadge: "Problem Solver",
@@ -94,8 +95,8 @@ const Community = () => {
   {
     id: 3,
     name: "Emily Rodriguez",
-    avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_1beb9fc75-1762273370028.png",
-    avatarAlt: "Professional headshot of Hispanic woman with long dark hair in white blouse",
+    avatar: "https://ui-avatars.com/api/?name=Emily+Rodriguez&background=EC4899&color=fff",
+    avatarAlt: "Emily Rodriguez avatar",
     points: 1923,
     level: "Active Citizen",
     topBadge: "Discussion Leader",
@@ -104,8 +105,8 @@ const Community = () => {
   {
     id: 4,
     name: "David Thompson",
-    avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_19341f160-1762248855459.png",
-    avatarAlt: "Professional headshot of man with beard in gray sweater outdoors",
+    avatar: "https://ui-avatars.com/api/?name=David+Thompson&background=10B981&color=fff",
+    avatarAlt: "David Thompson avatar",
     points: 1678,
     level: "Engaged Voter",
     topBadge: "Active Voter",
@@ -114,8 +115,8 @@ const Community = () => {
   {
     id: 5,
     name: "Lisa Park",
-    avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_1a7390ff6-1762273732548.png",
-    avatarAlt: "Professional headshot of Asian woman with short black hair in blue blazer",
+    avatar: "https://ui-avatars.com/api/?name=Lisa+Park&background=F59E0B&color=fff",
+    avatarAlt: "Lisa Park avatar",
     points: 1445,
     level: "Rising Star",
     topBadge: "Community Helper",
@@ -129,8 +130,8 @@ const Community = () => {
     type: "government_response",
     user: {
       name: "City Planning Dept",
-      avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_175143859-1762274671012.png",
-      avatarAlt: "Professional headshot of government official in suit at city hall"
+      avatar: "https://ui-avatars.com/api/?name=City+Planning&background=3B82F6&color=fff",
+      avatarAlt: "City Planning Dept avatar"
     },
     description: "Responded to the Main Street bike lane proposal with detailed implementation timeline",
     relatedItem: "Main Street Bike Lane Poll",
@@ -141,8 +142,8 @@ const Community = () => {
     type: "poll_created",
     user: {
       name: "Community Board",
-      avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_19c152708-1762274558818.png",
-      avatarAlt: "Professional headshot of woman in business suit at community meeting"
+      avatar: "https://ui-avatars.com/api/?name=Community+Board&background=8B5CF6&color=fff",
+      avatarAlt: "Community Board avatar"
     },
     description: "Created a new poll about weekend farmers market location",
     relatedItem: "Weekend Farmers Market Poll",
@@ -153,8 +154,8 @@ const Community = () => {
     type: "issue_resolved",
     user: {
       name: "Public Works",
-      avatar: "https://images.unsplash.com/photo-1713186273317-d1bd7e967c87",
-      avatarAlt: "Professional headshot of maintenance worker in safety vest and hard hat"
+      avatar: "https://ui-avatars.com/api/?name=Public+Works&background=10B981&color=fff",
+      avatarAlt: "Public Works avatar"
     },
     description: "Marked the broken streetlight on Oak Avenue as resolved",
     relatedItem: "Streetlight Repair #4521",
@@ -165,8 +166,8 @@ const Community = () => {
     type: "comment_added",
     user: {
       name: "Jennifer Martinez",
-      avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_1beb9fc75-1762273370028.png",
-      avatarAlt: "Professional headshot of Hispanic woman with curly hair in green blouse"
+      avatar: "https://ui-avatars.com/api/?name=Jennifer+Martinez&background=EC4899&color=fff",
+      avatarAlt: "Jennifer Martinez avatar"
     },
     description: "Added a detailed comment about traffic safety concerns in the school zone",
     relatedItem: "School Zone Safety Discussion",
@@ -177,8 +178,8 @@ const Community = () => {
     type: "vote_cast",
     user: {
       name: "Robert Kim",
-      avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_13c0c7e6e-1762273337806.png",
-      avatarAlt: "Professional headshot of Asian man in casual shirt smiling outdoors"
+      avatar: "https://ui-avatars.com/api/?name=Robert+Kim&background=F59E0B&color=fff",
+      avatarAlt: "Robert Kim avatar"
     },
     description: "Voted in favor of extended library hours proposal",
     relatedItem: "Library Hours Extension Poll",
@@ -193,8 +194,8 @@ const Community = () => {
     preview: "Parents are concerned about speeding vehicles during school hours. We need better crosswalks and speed bumps...",
     author: {
       name: "Parent Council",
-      avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_1274dd504-1762275023732.png",
-      avatarAlt: "Professional headshot of woman with blonde hair in casual attire at school event"
+      avatar: "https://ui-avatars.com/api/?name=Parent+Council&background=EF4444&color=fff",
+      avatarAlt: "Parent Council avatar"
     },
     category: "safety",
     repliesCount: 23,
@@ -207,10 +208,10 @@ const Community = () => {
       id: 1,
       author: {
         name: "Traffic Engineer",
-        avatar: "https://images.unsplash.com/photo-1626885930974-4b69aa21bbf9",
-        avatarAlt: "Professional headshot of engineer in safety vest reviewing traffic plans"
+        avatar: "https://ui-avatars.com/api/?name=Traffic+Engineer&background=14B8A6&color=fff",
+        avatarAlt: "Traffic Engineer avatar"
       },
-      content: "We\'re currently conducting a traffic study on these routes. Results should be available next month.",
+      content: "We're currently conducting a traffic study on these routes. Results should be available next month.",
       upvotes: 12,
       createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000)?.toISOString()
     }]
@@ -222,8 +223,8 @@ const Community = () => {
     preview: "The community center needs updates to better serve our growing population. What improvements should we prioritize?",
     author: {
       name: "Facilities Manager",
-      avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_184e71288-1762273638271.png",
-      avatarAlt: "Professional headshot of man with beard in business casual attire at community center"
+      avatar: "https://ui-avatars.com/api/?name=Facilities+Manager&background=6366F1&color=fff",
+      avatarAlt: "Facilities Manager avatar"
     },
     category: "infrastructure",
     repliesCount: 18,
@@ -237,8 +238,8 @@ const Community = () => {
 
   const mockUserStats = {
     name: "Alex Johnson",
-    avatar: "https://img.rocket.new/generatedImages/rocket_gen_img_10fabfed3-1762273690188.png",
-    avatarAlt: "Professional headshot of user with glasses in casual shirt smiling at camera",
+    avatar: "https://ui-avatars.com/api/?name=Alex+Johnson&background=0D8ABC&color=fff&size=128",
+    avatarAlt: "Alex Johnson avatar",
     level: 5,
     title: "Community Helper",
     location: "Downtown District",

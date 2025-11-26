@@ -20,16 +20,16 @@ const Routes = () => {
       <ErrorBoundary>
       <ScrollToTop />
       <RouterRoutes>
-        {/* Define your route here */}
-        <Route path="/" element={<MapView />} />
+        {/* routes */}
         <Route path="/home" element={<Home />} />
+        <Route path="/" element={<Home />} />
         <Route path="/map-view" element={<MapView />} />
         <Route path="/community" element={<Community />} />
         <Route path="/role-selection" element={<RoleSelection />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-  <Route path="/report-issue" element={<ReportIssue />} />
-  <Route path="/profile" element={<Profile />} />
+        <Route path="/report-issue" element={<ReportIssue />} />
+        <Route path="/profile" element={<Profile />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/issues" element={<Issues />} />
         <Route path="*" element={<NotFound />} />

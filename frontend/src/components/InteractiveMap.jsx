@@ -62,16 +62,18 @@ const InteractiveMap = ({
     setMapInstance(map);
 
     return () => {
-      map.remove();
+      if (map) {
+        map.remove();
+      }
     };
-  }, []);
+  }, []); // Empty dependency array to run only once
 
-  // Update map center when center prop changes
+  // Update map center and zoom when props change
   useEffect(() => {
     if (mapInstance && center) {
-      mapInstance.setView([center.lat, center.lng], mapInstance.getZoom());
+      mapInstance.setView([center.lat, center.lng], zoom);
     }
-  }, [center, mapInstance]);
+  }, [center, zoom, mapInstance]);
 
   // Add/update markers when issues change
   useEffect(() => {

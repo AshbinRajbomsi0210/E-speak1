@@ -12,7 +12,10 @@ class Issue(models.Model):
     reporter_email = models.EmailField(blank=True)
     reporter_phone = models.CharField(max_length=50, blank=True)
     address = models.CharField(max_length=512, blank=True)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
     status = models.CharField(max_length=50, default='Submitted')
+    upvotes = models.IntegerField(default=0)
     created_at = models.DateTimeField(default=timezone.now)
 
     def save(self, *args, **kwargs):
@@ -27,3 +30,11 @@ class Issue(models.Model):
 class IssuePhoto(models.Model):
     issue = models.ForeignKey(Issue, related_name='photos', on_delete=models.CASCADE)
     image = models.ImageField(upload_to='issue_photos/')
+
+class IssueVote(models.Model):
+    issue = models.ForeignKey(Issue, related_name='votes', on_delete=models.CASCADE)
+    voter_email = models.EmailField()
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        unique_together = ('issue', 'voter_email')
