@@ -235,6 +235,36 @@ const InteractiveMap = ({
       
       {/* Custom style for map */}
       <style>{`
+        .leaflet-container {
+          z-index: 1 !important;
+        }
+        .leaflet-pane {
+          z-index: auto !important;
+        }
+        .leaflet-map-pane {
+          z-index: 1 !important;
+        }
+        .leaflet-tile-pane {
+          z-index: 1 !important;
+        }
+        .leaflet-overlay-pane {
+          z-index: 2 !important;
+        }
+        .leaflet-shadow-pane {
+          z-index: 3 !important;
+        }
+        .leaflet-marker-pane {
+          z-index: 4 !important;
+        }
+        .leaflet-tooltip-pane {
+          z-index: 5 !important;
+        }
+        .leaflet-popup-pane {
+          z-index: 6 !important;
+        }
+        .leaflet-control {
+          z-index: 10 !important;
+        }
         .custom-leaflet-marker {
           background: none;
           border: none;
@@ -266,7 +296,7 @@ const InteractiveMap = ({
           boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
           fontSize: '12px',
           color: '#6b7280',
-          zIndex: 1000
+          zIndex: 20
         }}>
           Click anywhere on the map to set location
         </div>

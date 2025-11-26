@@ -158,9 +158,9 @@ const LocationSelector = ({ location, onLocationChange }) => {
           <label className="block text-sm font-medium text-foreground">
             Pinpoint Location on Map
           </label>
-          <div className="relative w-full h-80 rounded-lg overflow-hidden border-2 border-border hover:border-primary civic-transition">
+          <div className="relative w-full h-80 rounded-lg overflow-hidden border-2 border-border hover:border-primary civic-transition" style={{ zIndex: 1 }}>
             {isReverseGeocoding && (
-              <div className="absolute inset-0 bg-black/50 z-[2000] flex items-center justify-center">
+              <div className="absolute inset-0 bg-black/50 z-40 flex items-center justify-center">
                 <div className="bg-white px-6 py-4 rounded-lg shadow-xl flex items-center space-x-3">
                   <div className="animate-spin">
                     <Icon name="Loader" size={20} className="text-primary" />
@@ -181,7 +181,7 @@ const LocationSelector = ({ location, onLocationChange }) => {
             />
             
             {/* Custom Map Controls */}
-            <div className="absolute top-4 right-4 flex flex-col space-y-2 z-[1000]">
+            <div className="absolute top-4 right-4 flex flex-col space-y-2 z-30">
               <button
                 onClick={() => setZoomLevel(prev => Math.min(prev + 1, 18))}
                 className="flex items-center justify-center w-10 h-10 bg-surface border border-border rounded-lg shadow-lg hover:bg-muted civic-transition"
@@ -206,7 +206,7 @@ const LocationSelector = ({ location, onLocationChange }) => {
             </div>
             
             {/* Map Info */}
-            <div className="absolute top-4 left-4 bg-surface border border-border rounded-lg shadow-lg px-4 py-3 z-[1000]">
+            <div className="absolute top-4 left-4 bg-surface border border-border rounded-lg shadow-lg px-4 py-3 z-30">
               <div className="text-sm font-semibold text-foreground flex items-center space-x-2">
                 <Icon name="MapPin" size={16} className="text-primary" />
                 <span>Select Location</span>
