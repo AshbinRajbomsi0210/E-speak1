@@ -11,6 +11,8 @@ const MapView = () => {
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
   const [selectedIssue, setSelectedIssue] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [allIssues, setAllIssues] = useState([]); // Store all issues
 
   const [filters, setFilters] = useState({
     categories: [],
@@ -37,29 +39,57 @@ const MapView = () => {
       if (data.success) {
         const transformedIssues = data.data
           .filter(issue => issue.latitude && issue.longitude)
-          .map(issue => ({
-            id: issue.id,
-            title: issue.title,
-            description: issue.description,
-            category: issue.category,
-            status: issue.status,
-            priority: issue.priority?.toLowerCase(),
-            votes: 0,
-            comments: 0,
-            location: { 
-              lat: parseFloat(issue.latitude), 
-              lng: parseFloat(issue.longitude) 
-            },
-            address: issue.address,
-            reportedBy: issue.reporterName || 'Anonymous',
-            reportedDate: issue.created_at,
-            images: issue.photos?.map(p => p.image) || []
-          }));
+          .map(issue => {
+            // Normalize status from backend to match frontend expectations
+            const normalizeStatus = (status) => {
+              const statusMap = {
+                'Submitted': 'Open',
+                'In Discussion': 'Under Review',
+                'Under Review': 'Under Review',
+                'In Progress': 'In Progress',
+                'Resolved': 'Resolved',
+                'Closed': 'Resolved',
+                'pending': 'Open',
+                'in-progress': 'In Progress',
+                'resolved': 'Resolved'
+              };
+              return statusMap[status] || status || 'Open';
+            };
+
+            // Normalize priority
+            const normalizePriority = (priority) => {
+              if (!priority) return 'medium';
+              const p = priority.toLowerCase();
+              if (p === 'urgent') return 'high';
+              return p;
+            };
+
+            return {
+              id: issue.id,
+              title: issue.title,
+              description: issue.description,
+              category: issue.category || 'Other',
+              status: normalizeStatus(issue.status),
+              priority: normalizePriority(issue.priority),
+              votes: issue.upvotes || 0,
+              comments: 0,
+              location: { 
+                lat: parseFloat(issue.latitude), 
+                lng: parseFloat(issue.longitude) 
+              },
+              address: issue.address,
+              reportedBy: issue.reporterName || 'Anonymous',
+              reportedDate: issue.created_at,
+              images: issue.photos?.map(p => p.image) || []
+            };
+          });
         
+        setAllIssues(transformedIssues);
         setIssues(applyClientSideFilters(transformedIssues));
       }
     } catch (error) {
       console.error('Error fetching issues:', error);
+      setAllIssues([]);
       setIssues([]);
     } finally {
       setIsLoading(false);
@@ -86,19 +116,45 @@ const MapView = () => {
     });
   };
 
-  const filteredIssues = issues;
+  // Use search results if searching, otherwise use filtered issues
+  const filteredIssues = searchQuery ? searchResults : issues;
 
   const handleLocationSearch = (location) => {
-    console.log('Searching for location:', location);
-    // In a real app, this would update the map center and search for nearby issues
+    if (!location) {
+      setSearchQuery('');
+      setSearchResults([]);
+      return;
+    }
+    
+    setSearchQuery(location);
+    // Search issues by address/location
+    const results = allIssues.filter((issue) =>
+      issue.address?.toLowerCase().includes(location.toLowerCase())
+    );
+    setSearchResults(applyClientSideFilters(results));
   };
 
   const handleIssueSearch = (query) => {
-    const results = issues.filter((issue) =>
+    if (!query) {
+      setSearchQuery('');
+      setSearchResults([]);
+      return;
+    }
+    
+    setSearchQuery(query);
+    // Search issues by title, description, category
+    const results = allIssues.filter((issue) =>
       issue.title?.toLowerCase().includes(query.toLowerCase()) ||
-      issue.description?.toLowerCase().includes(query.toLowerCase())
+      issue.description?.toLowerCase().includes(query.toLowerCase()) ||
+      issue.category?.toLowerCase().includes(query.toLowerCase()) ||
+      issue.address?.toLowerCase().includes(query.toLowerCase())
     );
-    setSearchResults(results);
+    setSearchResults(applyClientSideFilters(results));
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setSearchResults([]);
   };
 
   const handleClearFilters = () => {
@@ -129,14 +185,24 @@ const MapView = () => {
               <div className="flex-1 max-w-md">
                 <SearchBar
                   onLocationSearch={handleLocationSearch}
-                  onIssueSearch={handleIssueSearch} />
-
+                  onIssueSearch={handleIssueSearch}
+                  onClearSearch={handleClearSearch}
+                  allIssues={allIssues}
+                  hasActiveSearch={!!searchQuery} />
               </div>
 
               {/* Filter Toggle & Stats */}
               <div className="flex items-center space-x-3">
                 <div className="hidden md:flex items-center space-x-2 text-sm text-text-secondary">
-                  <span>Showing {filteredIssues.length} issues</span>
+                  <span>Showing {filteredIssues.length} {searchQuery ? 'results' : 'issues'}</span>
+                  {searchQuery && (
+                    <button
+                      onClick={handleClearSearch}
+                      className="ml-2 text-xs text-primary hover:underline"
+                    >
+                      Clear search
+                    </button>
+                  )}
                 </div>
                 
                 <button

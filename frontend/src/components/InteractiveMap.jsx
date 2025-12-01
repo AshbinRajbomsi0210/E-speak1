@@ -148,34 +148,58 @@ const InteractiveMap = ({
 
       // Add popup
       const popupContent = `
-        <div style="min-width: 200px;">
-          <h3 style="font-weight: 600; margin-bottom: 8px; color: #1f2937;">${issue.title}</h3>
-          <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+        <div style="min-width: 250px; max-width: 300px;">
+          <h3 style="font-weight: 600; margin-bottom: 8px; color: #1f2937; font-size: 14px;">${issue.title}</h3>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;">
             <span style="
               background: ${getCategoryColor(issue.category)}; 
               color: white; 
-              padding: 2px 8px; 
+              padding: 3px 10px; 
               border-radius: 9999px; 
-              font-size: 11px;
-              font-weight: 500;
+              font-size: 10px;
+              font-weight: 600;
+              text-transform: uppercase;
             ">${issue.category}</span>
             <span style="
               background: ${getStatusColor(issue.status)}; 
               color: white; 
-              padding: 2px 8px; 
+              padding: 3px 10px; 
               border-radius: 9999px; 
-              font-size: 11px;
-              font-weight: 500;
+              font-size: 10px;
+              font-weight: 600;
+              text-transform: uppercase;
             ">${issue.status}</span>
+            ${issue.priority ? `
+              <span style="
+                background: ${issue.priority === 'high' || issue.priority === 'urgent' ? '#ef4444' : issue.priority === 'medium' ? '#f59e0b' : '#22c55e'};
+                color: white;
+                padding: 3px 10px;
+                border-radius: 9999px;
+                font-size: 10px;
+                font-weight: 600;
+                text-transform: uppercase;
+              ">${issue.priority}</span>
+            ` : ''}
           </div>
-          <p style="color: #6b7280; font-size: 13px; margin-bottom: 8px; line-height: 1.4;">
-            ${issue.description.substring(0, 100)}...
+          <p style="color: #6b7280; font-size: 12px; margin-bottom: 10px; line-height: 1.5;">
+            ${issue.description.substring(0, 120)}${issue.description.length > 120 ? '...' : ''}
           </p>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div style="display: flex; gap: 12px; color: #6b7280; font-size: 12px;">
-              <span>👍 ${issue.votes}</span>
-              <span>💬 ${issue.comments}</span>
+          ${issue.address ? `
+            <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 8px; color: #6b7280; font-size: 11px;">
+              <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+              </svg>
+              <span style="flex: 1;">${issue.address}</span>
             </div>
+          ` : ''}
+          <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid #e5e7eb;">
+            <div style="display: flex; gap: 12px; color: #6b7280; font-size: 11px;">
+              <span style="display: flex; align-items: center; gap: 4px;">👍 <strong>${issue.votes}</strong></span>
+              <span style="display: flex; align-items: center; gap: 4px;">💬 <strong>${issue.comments}</strong></span>
+            </div>
+            ${issue.reportedBy ? `
+              <span style="color: #9ca3af; font-size: 10px;">by ${issue.reportedBy}</span>
+            ` : ''}
           </div>
         </div>
       `;
@@ -222,9 +246,15 @@ const InteractiveMap = ({
   const getStatusColor = (status) => {
     const colors = {
       'Open': '#f59e0b',
+      'Submitted': '#f59e0b',
+      'pending': '#f59e0b',
       'In Progress': '#3b82f6',
+      'in-progress': '#3b82f6',
       'Under Review': '#8b5cf6',
-      'Resolved': '#22c55e'
+      'In Discussion': '#8b5cf6',
+      'Resolved': '#22c55e',
+      'resolved': '#22c55e',
+      'Closed': '#22c55e'
     };
     return colors[status] || '#6b7280';
   };

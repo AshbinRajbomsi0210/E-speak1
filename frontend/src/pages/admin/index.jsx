@@ -169,13 +169,22 @@ const AdminDashboard = () => {
     const issue = issues.find(i => i.id === issueId);
     if (!issue) return;
 
+    // Map frontend status values to backend status values
+    const statusMap = {
+      'pending': 'Submitted',
+      'in-progress': 'In Progress',
+      'resolved': 'Resolved',
+      'rejected': 'Closed'
+    };
+    const backendStatus = statusMap[newStatus] || newStatus;
+
     try {
       const response = await fetch(`http://127.0.0.1:8000/api/issues/${issue.dbId}/update/`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify({ status: backendStatus })
       });
 
       if (response.ok) {

@@ -1,32 +1,26 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Icon from '../../../components/AppIcon';
 
-const SearchBar = ({ onLocationSearch, onIssueSearch }) => {
+const SearchBar = ({ onLocationSearch, onIssueSearch, onClearSearch, allIssues = [], hasActiveSearch = false }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchType, setSearchType] = useState('location'); // 'location' or 'issue'
+  const [searchType, setSearchType] = useState('issue'); // 'location' or 'issue'
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const searchRef = useRef(null);
 
-  // Mock location suggestions
-  const locationSuggestions = [
-    "Central Park, New York",
-    "Times Square, New York", 
-    "Brooklyn Bridge, New York",
-    "Manhattan, New York",
-    "Queens, New York",
-    "Bronx, New York"
-  ];
+  // Generate location suggestions from actual issues
+  const getLocationSuggestions = () => {
+    const locations = allIssues
+      .map(issue => issue.address)
+      .filter((address, index, self) => address && self.indexOf(address) === index)
+      .slice(0, 10);
+    return locations;
+  };
 
-  // Mock issue search suggestions
-  const issueSuggestions = [
-    "Pothole on Main Street",
-    "Broken streetlight",
-    "Graffiti removal needed",
-    "Traffic signal malfunction",
-    "Sidewalk repair",
-    "Noise complaint"
-  ];
+  // Generate issue suggestions from actual issues
+  const getIssueSuggestions = () => {
+    return allIssues.map(issue => issue.title).slice(0, 10);
+  };
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -44,7 +38,7 @@ const SearchBar = ({ onLocationSearch, onIssueSearch }) => {
     setSearchQuery(query);
 
     if (query?.length > 0) {
-      const currentSuggestions = searchType === 'location' ? locationSuggestions : issueSuggestions;
+      const currentSuggestions = searchType === 'location' ? getLocationSuggestions() : getIssueSuggestions();
       const filtered = currentSuggestions?.filter(item =>
         item?.toLowerCase()?.includes(query?.toLowerCase())
       );
@@ -53,6 +47,10 @@ const SearchBar = ({ onLocationSearch, onIssueSearch }) => {
     } else {
       setSuggestions([]);
       setShowSuggestions(false);
+      // Clear search when input is empty
+      if (onClearSearch) {
+        onClearSearch();
+      }
     }
   };
 
@@ -83,6 +81,9 @@ const SearchBar = ({ onLocationSearch, onIssueSearch }) => {
     setSearchQuery('');
     setSuggestions([]);
     setShowSuggestions(false);
+    if (onClearSearch) {
+      onClearSearch();
+    }
   };
 
   return (
@@ -92,23 +93,23 @@ const SearchBar = ({ onLocationSearch, onIssueSearch }) => {
         <div className="flex mb-2">
           <button
             type="button"
-            onClick={() => setSearchType('location')}
+            onClick={() => { setSearchType('issue'); clearSearch(); }}
             className={`px-3 py-1 text-xs font-medium rounded-l-md border ${
-              searchType === 'location' ?'bg-primary text-primary-foreground border-primary' :'bg-surface text-text-secondary border-border hover:bg-muted'
-            } civic-transition`}
-          >
-            <Icon name="MapPin" size={12} className="mr-1" />
-            Location
-          </button>
-          <button
-            type="button"
-            onClick={() => setSearchType('issue')}
-            className={`px-3 py-1 text-xs font-medium rounded-r-md border-t border-r border-b ${
               searchType === 'issue' ?'bg-primary text-primary-foreground border-primary' :'bg-surface text-text-secondary border-border hover:bg-muted'
-            } civic-transition`}
+            } civic-transition flex items-center`}
           >
             <Icon name="Search" size={12} className="mr-1" />
             Issues
+          </button>
+          <button
+            type="button"
+            onClick={() => { setSearchType('location'); clearSearch(); }}
+            className={`px-3 py-1 text-xs font-medium rounded-r-md border-t border-r border-b ${
+              searchType === 'location' ?'bg-primary text-primary-foreground border-primary' :'bg-surface text-text-secondary border-border hover:bg-muted'
+            } civic-transition flex items-center`}
+          >
+            <Icon name="MapPin" size={12} className="mr-1" />
+            Location
           </button>
         </div>
 
@@ -128,9 +129,11 @@ const SearchBar = ({ onLocationSearch, onIssueSearch }) => {
             onChange={handleSearchChange}
             onFocus={() => suggestions?.length > 0 && setShowSuggestions(true)}
             placeholder={
-              searchType === 'location' ?'Search locations...' :'Search issues...'
+              searchType === 'location' ?'Search by location/address...' :'Search issues by title, description, or category...'
             }
-            className="w-full pl-10 pr-10 py-2 border border-border rounded-lg bg-surface text-foreground placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent civic-transition"
+            className={`w-full pl-10 pr-10 py-2 border rounded-lg bg-surface text-foreground placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent civic-transition ${
+              hasActiveSearch ? 'border-primary' : 'border-border'
+            }`}
           />
           
           {searchQuery && (
