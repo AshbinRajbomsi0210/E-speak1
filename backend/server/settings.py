@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'api',
     'issues',
+    'accounts',
 ]
 
 MIDDLEWARE = [
@@ -79,9 +80,9 @@ WSGI_APPLICATION = 'server.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'espeak',
+        'NAME': 'espeakdb',
         'USER': 'postgres',
-        'PASSWORD':'admin123',
+        'PASSWORD':'admin',
         'HOST': '127.0.0.1',
         'PORT': '5432',
     }
@@ -148,3 +149,9 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
 }
+AUTH_USER_MODEL = 'accounts.CustomUser'
+
+AUTHENTICATION_BACKENDS = [
+    'accounts.backends.EmailBackend',
+    'django.contrib.auth.backends.ModelBackend',  # fallback
+]

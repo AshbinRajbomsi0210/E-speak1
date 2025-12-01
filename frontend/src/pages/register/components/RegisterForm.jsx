@@ -5,6 +5,8 @@ import Input from '../../../components/ui/Input';
 import { Checkbox } from '../../../components/ui/Checkbox';
 import Icon from '../../../components/AppIcon';
 import { useAuth } from '../../../context/AuthContext';
+import axios from 'axios';
+import { useLocation } from 'react-router-dom';
 
 const RegisterForm = () => {
   const navigate = useNavigate();
@@ -23,6 +25,11 @@ const RegisterForm = () => {
   const [passwordStrength, setPasswordStrength] = useState({ score: 0, label: 'Weak' });
   const [successMessage, setSuccessMessage] = useState('');
   const { signIn } = useAuth();
+  
+  const location = useLocation();
+
+  // Get query params
+  const queryParams = new URLSearchParams(location.search);
 
   const computePasswordStrength = (pwd) => {
     let score = 0;
@@ -91,7 +98,7 @@ const RegisterForm = () => {
     
     if (!formData?.confirmPassword) {
       newErrors.confirmPassword = 'Please confirm your password';
-    } else if (formData?.password !== formData?.confirmPassword) {
+    } else if (formData?.password !== formData?.confirmPassword) {``
       newErrors.confirmPassword = 'Passwords do not match';
     }
 
@@ -114,15 +121,26 @@ const RegisterForm = () => {
     
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      // Auto sign in after registration
-      signIn('user', { email: formData?.email, name: formData?.fullName });
-      setSuccessMessage('Account created successfully! Redirecting...');
-      setTimeout(() => navigate('/profile'), 900);
-      setIsLoading(false);
-    }, 1500);
-  };
+    try {
+    const response = await axios.post("http://localhost:8000/api/accounts/register/", {
+      fullName: formData?.fullName,
+      email: formData?.email,
+      password: formData?.password,
+      password2: formData?.confirmPassword,
+      role: queryParams.get('role') || 'user',
+      phone: formData?.phone
+    });
+
+    console.log('Registration successful:', response.data);
+    setSuccessMessage('Account created successfully! Redirecting...');
+    setTimeout(() => navigate('/login'), 900); // redirect after success
+  } catch (error) {
+    console.error(error.response?.data || error);
+    setErrors({ general: error.response?.data?.error || 'Registration failed' });
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleSocialRegister = (provider) => {
     setIsLoading(true);
