@@ -22,14 +22,21 @@ class CustomUserManager(BaseUserManager):
         return self.create_user(email, password, **extra_fields)
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
+    # Clerk integration - this is the source of truth for auth
+    clerk_user_id = models.CharField(max_length=255, unique=True, null=True, blank=True, 
+                                     help_text="Unique Clerk user ID")
+    
+    # User info synced from Clerk
     fullName = models.CharField(max_length=255)
     email = models.EmailField(unique=True)
-    role = models.CharField(max_length=50, default='user', choices=[('user', 'User'), ('admin', 'Admin'), ('staff', 'Staff')])
+    role = models.CharField(max_length=50, default='user', 
+                           choices=[('user', 'User'), ('admin', 'Admin'), ('authority', 'Authority')])
     phone = models.CharField(max_length=20, blank=True, null=True)
+    
+    # Django admin access
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)
-
 
     objects = CustomUserManager()
 
@@ -37,9 +44,19 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     REQUIRED_FIELDS = ['fullName']
 
     def __str__(self):
-        return self.email
+        return f"{self.email} ({self.role})"
     
     @property
     def username(self):
-        return self.email  # or fullName if you prefer
+        return self.email
+    
+    @property
+    def is_authority(self):
+        """Check if user is an authority"""
+        return self.role == 'authority'
+    
+    @property
+    def is_admin_user(self):
+        """Check if user is an admin"""
+        return self.role == 'admin'
 

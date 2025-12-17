@@ -146,12 +146,33 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 # REST Framework settings
 REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'accounts.clerk_auth.ClerkAuthentication',  # Clerk auth first
+        'rest_framework_simplejwt.authentication.JWTAuthentication',  # Fallback for Django admin
+    ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
 }
-AUTH_USER_MODEL = 'accounts.CustomUser'
 
-AUTHENTICATION_BACKENDS = [
-    'accounts.backends.EmailBackend',
-    'django.contrib.auth.backends.ModelBackend',  # fallback
-]
+# Custom user model
+AUTH_USER_MODEL = "accounts.CustomUser"
+
+# Clerk Configuration
+CLERK_PUBLISHABLE_KEY = os.getenv('CLERK_PUBLISHABLE_KEY', 'pk_test_YmV0dGVyLWZseS04MS5jbGVyay5hY2NvdW50cy5kZXYk')
+CLERK_SECRET_KEY = os.getenv('CLERK_SECRET_KEY', 'sk_test_04hixLx3duuQT09mud6NKbovWWJZOev0qj4woEcqqL')  # Add your Clerk secret key here
+CLERK_DOMAIN = 'better-fly-81.clerk.accounts.dev'  # Your Clerk instance domain
+
+# JWT Authentication settings (for Django admin fallback)
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
+
+
+# AUTHENTICATION_BACKENDS = [
+#     'accounts.backends.EmailBackend',
+#     'django.contrib.auth.backends.ModelBackend',  # fallback
+# ]

@@ -1,12 +1,18 @@
 import React from "react";
 import Routes from "./Routes";
-import { AuthProvider } from './context/AuthContext';
+import './App.css'
+import { SignedIn, SignedOut, SignInButton, UserButton, RedirectToSignIn } from '@clerk/clerk-react';
+
+
+
 
 function App() {
   return (
-    <AuthProvider>
+    <div>
+      
       <Routes />
-    </AuthProvider>
+    </div>   
+    
   );
 }
 

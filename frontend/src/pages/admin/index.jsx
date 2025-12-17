@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useUser } from '@clerk/clerk-react';
 import Header from '../../components/ui/Header';
 import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
+import InviteAuthorityModal from './components/InviteAuthorityModal';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const { role, user } = useAuth();
+  const { user, isLoaded, isSignedIn } = useUser();
+  const role = user?.unsafeMetadata?.role;
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedIssue, setSelectedIssue] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -86,13 +88,15 @@ const AdminDashboard = () => {
       createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
     }
   ]);
+  
+  const [showInviteModal, setShowInviteModal] = useState(false);
 
   // Redirect if not admin or authority
   React.useEffect(() => {
-    if (role !== 'admin' && role !== 'authority') {
+    if (isLoaded && (!isSignedIn || (role !== 'admin' && role !== 'authority'))) {
       navigate('/home');
     }
-  }, [role, navigate]);
+  }, [isLoaded, isSignedIn, role, navigate]);
 
   // Fetch issues from backend
   React.useEffect(() => {
@@ -310,7 +314,7 @@ const AdminDashboard = () => {
                   <span>Admin Dashboard</span>
                 </h1>
                 <p className="mt-2 text-text-secondary">
-                  Welcome back, {user?.name || 'Administrator'}. Manage issues and monitor community reports.
+                  Welcome back, {user?.firstName || 'Administrator'}. Manage issues and monitor community reports.
                 </p>
               </div>
               <div className="flex items-center space-x-3">
@@ -583,8 +587,13 @@ const AdminDashboard = () => {
                   <Button variant="outline" size="sm" iconName="Download">
                     Export Users
                   </Button>
-                  <Button variant="default" size="sm" iconName="UserPlus">
-                    Add User
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    iconName="UserPlus"
+                    onClick={() => setShowInviteModal(true)}
+                  >
+                    Invite Authority
                   </Button>
                 </div>
               </div>
@@ -1102,6 +1111,16 @@ const AdminDashboard = () => {
           </div>
         </div>
       )}
+      
+      {/* Invite Authority Modal */}
+      <InviteAuthorityModal
+        isOpen={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        onSuccess={() => {
+          // Optionally refresh user list here
+          console.log('Authority invited successfully');
+        }}
+      />
     </div>
   );
 };

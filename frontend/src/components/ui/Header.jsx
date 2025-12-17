@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useUser, useClerk } from '@clerk/clerk-react';
 import Icon from '../AppIcon';
 import Button from './Button';
-import { useAuth } from '../../context/AuthContext';
 
 const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -11,7 +11,8 @@ const Header = () => {
   const [selectedRole, setSelectedRole] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
-  const { authenticated, user, role, signIn, signOut } = useAuth();
+  const { user, isLoaded, isSignedIn } = useUser();
+  const { signOut } = useClerk();
 
   const navigationItems = [
     { label: 'Home', path: '/home', icon: 'Home' },
@@ -64,24 +65,28 @@ const Header = () => {
             <Button variant="ghost" size="sm" aria-label="Notifications">
               <Icon name="Bell" size={18} />
             </Button>
-            {authenticated ? (
+            {isSignedIn ? (
               <div className="relative">
                 <Button variant="ghost" size="sm" onClick={() => setShowUserMenu(prev => !prev)} aria-haspopup="menu" aria-expanded={showUserMenu}>
-                  <Icon name="User" size={18} />
-                  <span className="ml-2 hidden lg:inline font-medium">{user?.name}</span>
+                  <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-semibold">
+                    {user?.firstName?.charAt(0) || user?.emailAddresses?.[0]?.emailAddress?.charAt(0) || 'U'}
+                  </div>
+                  <span className="ml-2 hidden lg:inline font-medium">{user?.fullName || user?.firstName || 'User'}</span>
                   <Icon name={showUserMenu ? 'ChevronUp' : 'ChevronDown'} size={16} />
                 </Button>
                 {showUserMenu && (
                   <div className="absolute right-0 mt-2 w-56 civic-card p-2 space-y-1 border border-border rounded-lg shadow-lg z-50">
                     <div className="px-3 py-2 text-sm text-text-secondary">
-                      Signed in as <span className="font-medium text-foreground">{user?.email}</span>
-                      <div className="text-xs mt-1 capitalize">Role: {role}</div>
+                      Signed in as <span className="font-medium text-foreground">{user?.emailAddresses?.[0]?.emailAddress}</span>
+                      {user?.unsafeMetadata?.role && (
+                        <div className="text-xs mt-1 capitalize">Role: {user.unsafeMetadata.role}</div>
+                      )}
                     </div>
                     <Link to="/profile" className="flex items-center space-x-2 px-3 py-2 rounded-md hover:bg-muted text-sm civic-transition" onClick={() => setShowUserMenu(false)}>
                       <Icon name="User" size={16} />
                       <span>Profile</span>
                     </Link>
-                    <button className="flex w-full items-center space-x-2 px-3 py-2 rounded-md hover:bg-muted text-sm civic-transition" onClick={() => { signOut(); setShowUserMenu(false); navigate('/home'); }}>
+                    <button className="flex w-full items-center space-x-2 px-3 py-2 rounded-md hover:bg-muted text-sm civic-transition" onClick={async () => { await signOut(); setShowUserMenu(false); navigate('/home'); }}>
                       <Icon name="LogOut" size={16} />
                       <span>Sign Out</span>
                     </button>
@@ -128,10 +133,10 @@ const Header = () => {
                           </Link>
                         )}
                         <div className="border-t border-border my-1"></div>
-                        <button className="flex w-full items-center space-x-2 px-3 py-2 rounded-md hover:bg-muted text-xs text-text-secondary civic-transition" onClick={() => { signIn(selectedRole); setShowSigninMenu(false); setSelectedRole(null); navigate('/profile'); }}>
+                        <Link to={`/login?role=${selectedRole}`} onClick={() => { setShowSigninMenu(false); setSelectedRole(null); }} className="flex w-full items-center space-x-2 px-3 py-2 rounded-md hover:bg-muted text-xs text-text-secondary civic-transition">
                           <Icon name="Zap" size={14} />
                           <span>Quick Demo Login</span>
-                        </button>
+                        </Link>
                       </>
                     )}
                   </div>
@@ -173,8 +178,19 @@ const Header = () => {
               
               {/* Mobile User Actions */}
               <div className="pt-3 mt-3 border-t border-border">
-                {authenticated ? (
+                {isSignedIn ? (
                   <>
+                    <div className="px-3 py-2 mb-2">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold">
+                          {user?.firstName?.charAt(0) || user?.emailAddresses?.[0]?.emailAddress?.charAt(0) || 'U'}
+                        </div>
+                        <div>
+                          <div className="font-medium text-foreground">{user?.fullName || user?.firstName || 'User'}</div>
+                          <div className="text-xs text-text-secondary">{user?.emailAddresses?.[0]?.emailAddress}</div>
+                        </div>
+                      </div>
+                    </div>
                     <Link
                       to="/profile"
                       onClick={() => setIsMobileMenuOpen(false)}
@@ -183,7 +199,7 @@ const Header = () => {
                       <Icon name="User" size={20} />
                       <span className="font-medium">Profile</span>
                     </Link>
-                    <button className="flex items-center space-x-3 px-3 py-3 rounded-lg text-text-secondary hover:text-foreground hover:bg-muted civic-transition w-full" onClick={() => { signOut(); setIsMobileMenuOpen(false); navigate('/home'); }}>
+                    <button className="flex items-center space-x-3 px-3 py-3 rounded-lg text-text-secondary hover:text-foreground hover:bg-muted civic-transition w-full" onClick={async () => { await signOut(); setIsMobileMenuOpen(false); navigate('/home'); }}>
                       <Icon name="LogOut" size={20} />
                       <span className="font-medium">Sign Out</span>
                     </button>
@@ -231,10 +247,10 @@ const Header = () => {
                           </Link>
                         )}
                         <div className="border-t border-border my-2"></div>
-                        <button onClick={() => { signIn(selectedRole); setIsMobileMenuOpen(false); setSelectedRole(null); navigate('/profile'); }} className="flex items-center space-x-3 px-3 py-3 rounded-lg text-text-secondary hover:text-foreground hover:bg-muted civic-transition w-full">
+                        <Link to={`/login?role=${selectedRole}`} onClick={() => { setIsMobileMenuOpen(false); setSelectedRole(null); }} className="flex items-center space-x-3 px-3 py-3 rounded-lg text-text-secondary hover:text-foreground hover:bg-muted civic-transition w-full">
                           <Icon name="Zap" size={20} />
                           <span className="font-medium">Quick Demo Login</span>
-                        </button>
+                        </Link>
                       </>
                     )}
                   </>

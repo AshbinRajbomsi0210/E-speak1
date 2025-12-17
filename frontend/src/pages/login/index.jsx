@@ -3,20 +3,21 @@ import { useNavigate, useSearchParams, useLocation, Link } from 'react-router-do
 import LoginForm from './components/Loginform';
 import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
-import { useAuth } from '../../context/AuthContext';
+// import { useAuth } from '../../context/AuthContext';
 
 const Login = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const location = useLocation();
-  const { authenticated } = useAuth();
+  const [selectedRole, setSelectedRole] = React.useState('user');
+  // const { authenticated } = useAuth();
   const from = location.state?.from;
-
-  useEffect(() => {
-    if (authenticated) {
-      navigate(from || '/profile');
-    }
-  }, [authenticated, navigate, from]);
+                                      
+  // useEffect(() => {
+  //   if (authenticated) {
+  //     navigate(from || '/profile');
+  //   }
+  // }, [authenticated, navigate, from]);
 
   return (
     <div className="min-h-screen flex">
@@ -120,21 +121,23 @@ const Login = () => {
           </div>
 
           {/* Login Form */}
-          <LoginForm forcedRole={searchParams.get('role')} redirectTo={from} />
+          <LoginForm forcedRole={searchParams.get('role')} redirectTo={from} onRoleChange={setSelectedRole} />
 
-          {/* Sign Up Link */}
-          <div className="text-center pt-6 border-t border-border">
-            <p className="text-sm text-text-secondary mb-3">
-              Don't have an account?
-            </p>
-            <Link 
-              to="/register"
-              className="inline-flex items-center space-x-2 text-primary hover:text-primary/80 font-medium civic-transition"
-            >
-              <Icon name="UserPlus" size={18} />
-              <span>Create Account</span>
-            </Link>
-          </div>
+          {/* Sign Up Link - Only for regular users */}
+          {selectedRole === 'user' && (
+            <div className="text-center pt-6 border-t border-border">
+              <p className="text-sm text-text-secondary mb-3">
+                Don't have an account?
+              </p>
+              <Link 
+                to="/register"
+                className="inline-flex items-center space-x-2 text-primary hover:text-primary/80 font-medium civic-transition"
+              >
+                <Icon name="UserPlus" size={18} />
+                <span>Create Account</span>
+              </Link>
+            </div>
+          )}
 
           {/* Trust Indicators */}
           <div className="flex items-center justify-center space-x-6 pt-6 text-xs text-text-secondary">

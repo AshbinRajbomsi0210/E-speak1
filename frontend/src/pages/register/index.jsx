@@ -2,17 +2,17 @@ import React, { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import RegisterForm from './components/RegisterForm';
 import Icon from '../../components/AppIcon';
-import { useAuth } from '../../context/AuthContext';
+// import { useAuth } from '../../context/AuthContext';
 
 const Register = () => {
   const navigate = useNavigate();
-  const { authenticated } = useAuth();
+  // const { authenticated } = useAuth();
 
-  useEffect(() => {
-    if (authenticated) {
-      navigate('/profile');
-    }
-  }, [authenticated, navigate]);
+  // useEffect(() => {
+  //   if (authenticated) {
+  //     navigate('/profile');
+  //   }
+  // }, [authenticated, navigate]);
 
   return (
     <div className="min-h-screen flex">

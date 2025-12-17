@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useUser } from '@clerk/clerk-react';
 import Header from '../../components/ui/Header';
 import IssueForm from './components/IssueForm';
 import PhotoUpload from './components/PhotoUpload';
@@ -13,7 +13,7 @@ import Icon from '../../components/AppIcon';
 
 const ReportIssue = () => {
   const navigate = useNavigate();
-  const { authenticated, loading, user } = useAuth();
+  const { user, isLoaded, isSignedIn } = useUser();
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -32,13 +32,6 @@ const ReportIssue = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [generatedReportId, setGeneratedReportId] = useState('');
-
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!loading && !authenticated) {
-      navigate('/login', { state: { from: '/report-issue' } });
-    }
-  }, [authenticated, loading, navigate]);
 
   const handleFormChange = (field, value) => {
     setFormData(prev => ({
@@ -182,26 +175,6 @@ const ReportIssue = () => {
       }
     });
   };
-
-  // Show loading state while checking authentication
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <main className="pt-16 flex items-center justify-center min-h-[calc(100vh-4rem)]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-text-secondary">Loading...</p>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  // Don't render the form if not authenticated (will redirect)
-  if (!authenticated) {
-    return null;
-  }
 
   return (
     <div className="min-h-screen bg-background">

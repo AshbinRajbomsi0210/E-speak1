@@ -1,12 +1,20 @@
 import React from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useUser, useClerk } from '@clerk/clerk-react';
+import { useNavigate } from 'react-router-dom';
 import Header from '../../components/ui/Header';
 import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
 import { Link } from 'react-router-dom';
 
 const Profile = () => {
-  const { user, authenticated, signOut } = useAuth();
+  const { user, isLoaded, isSignedIn } = useUser();
+  const { signOut } = useClerk();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
 
   return (
     <div className="min-h-screen bg-background pb-12">
@@ -15,20 +23,24 @@ const Profile = () => {
         <div className="civic-card p-6 space-y-4">
           <div className="flex items-center space-x-4">
             <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-2xl font-semibold">
-              {user?.name?.charAt(0) || 'U'}
+              {user?.firstName?.charAt(0) || user?.emailAddresses?.[0]?.emailAddress?.charAt(0) || 'U'}
             </div>
             <div>
-              <h1 className="text-2xl font-semibold text-foreground">{user?.name || 'Guest'}</h1>
-              <p className="text-text-secondary text-sm">{user?.email || 'Not signed in'}</p>
-              {user?.role && (
+              <h1 className="text-2xl font-semibold text-foreground">
+                {user?.fullName || user?.firstName || 'Guest'}
+              </h1>
+              <p className="text-text-secondary text-sm">
+                {user?.emailAddresses?.[0]?.emailAddress || 'Not signed in'}
+              </p>
+              {user?.unsafeMetadata?.role && (
                 <div className="mt-1 inline-flex items-center space-x-1 text-xs px-2 py-1 rounded-full bg-muted text-text-secondary capitalize">
-                  <Icon name={user.role === 'admin' ? 'Shield' : user.role === 'authority' ? 'Award' : 'User'} size={14} />
-                  <span>{user.role}</span>
+                  <Icon name={user.unsafeMetadata.role === 'admin' ? 'Shield' : user.unsafeMetadata.role === 'authority' ? 'Award' : 'User'} size={14} />
+                  <span>{user.unsafeMetadata.role}</span>
                 </div>
               )}
             </div>
           </div>
-          {!authenticated && (
+          {!isSignedIn && (
             <div className="p-4 bg-muted rounded-lg text-sm space-y-2">
               <p>You are currently not signed in. Choose a role from the header Sign In menu or go to the full login page.</p>
               <Link to="/login" className="text-primary hover:underline inline-flex items-center space-x-1 text-sm">
@@ -37,20 +49,21 @@ const Profile = () => {
               </Link>
             </div>
           )}
-          {authenticated && (
+          {isSignedIn && (
             <div className="flex space-x-3">
-              <Button variant="outline" iconName="LogOut" onClick={signOut}>Sign Out</Button>
+              <Button variant="outline" iconName="LogOut" onClick={handleSignOut}>Sign Out</Button>
             </div>
           )}
         </div>
-        {authenticated && (
+        {isSignedIn && (
           <div className="grid gap-6 md:grid-cols-2">
             <div className="civic-card p-5 space-y-2">
               <h2 className="text-lg font-medium">Account Details</h2>
               <div className="text-sm text-text-secondary space-y-1">
-                <div><span className="font-medium text-foreground">Email:</span> {user.email}</div>
-                <div className="capitalize"><span className="font-medium text-foreground">Role:</span> {user.role}</div>
-                <div><span className="font-medium text-foreground">Member Since:</span> {new Date().toLocaleDateString()}</div>
+                <div><span className="font-medium text-foreground">Email:</span> {user?.emailAddresses?.[0]?.emailAddress}</div>
+                <div className="capitalize"><span className="font-medium text-foreground">Role:</span> {user?.unsafeMetadata?.role || 'user'}</div>
+                <div><span className="font-medium text-foreground">Phone:</span> {user?.unsafeMetadata?.phone || 'Not provided'}</div>
+                <div><span className="font-medium text-foreground">Member Since:</span> {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}</div>
               </div>
             </div>
             <div className="civic-card p-5 space-y-2">

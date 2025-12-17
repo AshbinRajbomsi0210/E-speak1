@@ -4,13 +4,13 @@ import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import { Checkbox } from '../../../components/ui/Checkbox';
 import Icon from '../../../components/AppIcon';
-import { useAuth } from '../../../context/AuthContext';
-import axios from 'axios';
+import { useSignIn, useUser } from '@clerk/clerk-react';
 
 
-const LoginForm = ({ forcedRole, redirectTo }) => {
+const LoginForm = ({ forcedRole, redirectTo, onRoleChange }) => {
   const navigate = useNavigate();
-  const { signIn } = useAuth();
+  const { isLoaded, signIn, setActive } = useSignIn();
+  const { user } = useUser();
 
   const [formData, setFormData] = useState({
     email: '',
@@ -27,12 +27,16 @@ const LoginForm = ({ forcedRole, redirectTo }) => {
   const [successMessage, setSuccessMessage] = useState('');
   const [socialLoading, setSocialLoading] = useState(null);
 
-  // Apply forcedRole from query param if provided
+  // Apply forcedRole from query param if provided and notify parent of initial/forced role
   useEffect(() => {
     if (forcedRole && ['user','admin','authority'].includes(forcedRole)) {
       setFormData(prev => ({ ...prev, userType: forcedRole }));
+      if (onRoleChange) onRoleChange(forcedRole);
+    } else if (onRoleChange) {
+      // Notify parent of initial role (default 'user')
+      onRoleChange(formData.userType);
     }
-  }, [forcedRole]);
+  }, [forcedRole, onRoleChange]);
 
   const computePasswordStrength = (pwd) => {
     if (!pwd) return { score: 0, label: 'Weak' };
@@ -51,7 +55,13 @@ const LoginForm = ({ forcedRole, redirectTo }) => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    const newValue = type === 'checkbox' ? checked : value;
+    setFormData(prev => ({ ...prev, [name]: newValue }));
+    
+    // Notify parent component when role changes
+    if (name === 'userType' && onRoleChange) {
+      onRoleChange(newValue);
+    }
 
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
 
@@ -81,32 +91,37 @@ const LoginForm = ({ forcedRole, redirectTo }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
+    if (!isLoaded) return;
 
     setIsLoading(true);
     setErrors({});
     setSuccessMessage('');
 
     try {
-        const { data } = await axios.post('/api/accounts/login/', {
-           email: formData.email,
-           password: formData.password,
-           user_type: formData.userType
-        }, {
-          headers: { 'Content-Type': 'application/json' }
-        });
+      const result = await signIn.create({
+        identifier: formData.email,
+        password: formData.password,
+      });
 
-      // Call your sign-in function with the data
-      signIn(formData.userType, data);
-      setSuccessMessage('Authentication successful. Redirecting...');
+      if (result.status === 'complete') {
+        // Activate the session first
+        await setActive({ session: result.createdSessionId });
+        
+        setSuccessMessage('Authentication successful. Redirecting...');
 
-      const redirectPath = redirectTo || 
-        ((formData.userType === 'admin' || formData.userType === 'authority') ? '/admin' : '/profile')
+        const redirectPath = redirectTo || 
+          ((formData.userType === 'admin' || formData.userType === 'authority') ? '/admin' : '/profile');
 
-      navigate(`${redirectPath}`, { replace: true });
-
+        // Redirect after a short delay to allow session to be fully established
+        setTimeout(() => navigate(`${redirectPath}`, { replace: true }), 900);
+      } else {
+        // Handle other statuses if needed (e.g., needs second factor)
+        console.log('Sign in status:', result.status);
+        setErrors({ general: 'Sign in requires additional steps' });
+      }
     } catch (err) {
-      console.error(err);
-      setErrors({ general: 'Server error. Please try again later.' });
+      console.error('Login error:', err);
+      setErrors({ general: err.errors?.[0]?.message || 'Invalid email or password' });
     } finally {
       setIsLoading(false);
     }
@@ -114,6 +129,8 @@ const LoginForm = ({ forcedRole, redirectTo }) => {
 
   // --- SOCIAL LOGIN (GOOGLE / FACEBOOK) ---
   const handleSocialLogin = async (provider) => {
+    if (!isLoaded) return;
+    
     if (formData.userType !== 'user') {
       setErrors({ general: 'Social login is only available for standard user accounts' });
       return;
@@ -124,29 +141,15 @@ const LoginForm = ({ forcedRole, redirectTo }) => {
     setSuccessMessage('');
 
     try {
-      // Replace with backend OAuth endpoint
-      const response = await fetch(`/api/accounts/social-login/${provider}/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const oauthProvider = provider === 'google' ? 'oauth_google' : 'oauth_facebook';
+      await signIn.authenticateWithRedirect({
+        strategy: oauthProvider,
+        redirectUrl: '/sso-callback',
+        redirectUrlComplete: redirectTo || '/profile'
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setErrors({ general: data?.detail || `${provider} login failed` });
-        setSocialLoading(null);
-        return;
-      }
-
-      signIn('user', data);
-      setSuccessMessage(`${provider[0].toUpperCase() + provider.slice(1)} login successful. Redirecting...`);
-      setSocialLoading(null);
-
-      setTimeout(() => navigate(redirectTo || '/profile'), 900);
-
     } catch (err) {
-      console.error(err);
-      setErrors({ general: `${provider} login failed. Try again later.` });
+      console.error('OAuth error:', err);
+      setErrors({ general: err.errors?.[0]?.message || `${provider} login failed. Try again later.` });
       setSocialLoading(null);
     }
   };
@@ -162,7 +165,10 @@ const LoginForm = ({ forcedRole, redirectTo }) => {
               <button
                 key={role}
                 type="button"
-                onClick={() => setFormData(prev => ({ ...prev, userType: role }))}
+                onClick={() => {
+                  setFormData(prev => ({ ...prev, userType: role }));
+                  if (onRoleChange) onRoleChange(role);
+                }}
                 className={`flex-1 px-3 py-2 rounded-md text-sm font-medium civic-transition ${
                   formData.userType === role ? 'bg-background text-foreground shadow-sm' : 'text-text-secondary hover:text-foreground'
                 }`}

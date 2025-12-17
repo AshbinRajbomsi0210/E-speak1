@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useUser } from '@clerk/clerk-react';
 import Header from '../../components/ui/Header';
 import Button from '../../components/ui/Button';
 import Icon from '../../components/AppIcon';
@@ -12,7 +12,7 @@ import EmptyState from './components/EmptyState';
 
 const Issues = () => {
   const navigate = useNavigate();
-  const { authenticated, user } = useAuth();
+  const { user, isSignedIn } = useUser();
   const [isLoading, setIsLoading] = useState(true);
   const [issues, setIssues] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -29,17 +29,18 @@ const Issues = () => {
 
   // Check user votes after issues are loaded
   useEffect(() => {
-    if (authenticated && user?.email && issues.length > 0) {
+    if (isSignedIn && user?.emailAddresses?.[0]?.emailAddress && issues.length > 0) {
       checkUserVotes();
     }
-  }, [authenticated, user, issues.length]);
+  }, [isSignedIn, user, issues.length]);
 
   const checkUserVotes = async () => {
-    if (!user?.email) return;
+    const userEmail = user?.emailAddresses?.[0]?.emailAddress;
+    if (!userEmail) return;
 
     try {
       const voteChecks = issues.map(issue => 
-        fetch(`http://127.0.0.1:8000/api/issues/${issue.id}/check-upvote/?voter_email=${encodeURIComponent(user.email)}`)
+        fetch(`http://127.0.0.1:8000/api/issues/${issue.id}/check-upvote/?voter_email=${encodeURIComponent(userEmail)}`)
           .then(res => res.json())
           .then(data => ({ issueId: issue.id, hasVoted: data.data?.has_voted || false }))
           .catch(() => ({ issueId: issue.id, hasVoted: false }))

@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useSignUp } from '@clerk/clerk-react';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import { Checkbox } from '../../../components/ui/Checkbox';
 import Icon from '../../../components/AppIcon';
-import { useAuth } from '../../../context/AuthContext';
-import axios from 'axios';
-import { useLocation } from 'react-router-dom';
 
 const RegisterForm = () => {
+  const { isLoaded, signUp, setActive } = useSignUp();
   const navigate = useNavigate();
+  const location = useLocation();
+  
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -24,12 +25,21 @@ const RegisterForm = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState({ score: 0, label: 'Weak' });
   const [successMessage, setSuccessMessage] = useState('');
-  const { signIn } = useAuth();
-  
-  const location = useLocation();
+  const [verifying, setVerifying] = useState(false);
+  const [code, setCode] = useState('');
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   // Get query params
   const queryParams = new URLSearchParams(location.search);
+
+  // Countdown timer for resend OTP
+  React.useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown]);
 
   const computePasswordStrength = (pwd) => {
     let score = 0;
@@ -118,54 +128,261 @@ const RegisterForm = () => {
     e?.preventDefault();
     
     if (!validateForm()) return;
+    if (!isLoaded) return;
     
     setIsLoading(true);
     
     try {
-    const response = await axios.post("http://localhost:8000/api/accounts/register/", {
-      fullName: formData?.fullName,
-      email: formData?.email,
-      password: formData?.password,
-      password2: formData?.confirmPassword,
-      role: queryParams.get('role') || 'user',
-      phone: formData?.phone
-    });
+      // Create the user with Clerk
+      await signUp.create({
+        emailAddress: formData?.email,
+        password: formData?.password,
+        firstName: formData?.fullName.split(' ')[0],
+        lastName: formData?.fullName.split(' ').slice(1).join(' ') || formData?.fullName.split(' ')[0],
+        unsafeMetadata: {
+          role: queryParams.get('role') || 'user',
+          phone: formData?.phone
+        }
+      });
 
-    console.log('Registration successful:', response.data);
-    setSuccessMessage('Account created successfully! Redirecting...');
-    setTimeout(() => navigate('/login'), 900); // redirect after success
-  } catch (error) {
-    console.error(error.response?.data || error);
-    setErrors({ general: error.response?.data?.error || 'Registration failed' });
-  } finally {
-    setIsLoading(false);
-  }
-};
+      // Send email verification code
+      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+      
+      // Switch to verification mode
+      setVerifying(true);
+      setSuccessMessage('Verification code sent to your email!');
+    } catch (error) {
+      console.error('Registration error:', error);
+      
+      // Parse Clerk errors and assign to specific fields
+      const clerkError = error.errors?.[0];
+      const errorMessage = clerkError?.longMessage || clerkError?.message || 'Registration failed';
+      
+      // Check if error is related to specific field
+      if (clerkError?.meta?.paramName === 'password' || errorMessage.toLowerCase().includes('password')) {
+        setErrors({ password: errorMessage });
+      } else if (clerkError?.meta?.paramName === 'email_address' || errorMessage.toLowerCase().includes('email')) {
+        setErrors({ email: errorMessage });
+      } else {
+        setErrors({ general: errorMessage });
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const handleSocialRegister = (provider) => {
+  const handleVerify = async (e) => {
+    e?.preventDefault();
+    if (!isLoaded) return;
+    
     setIsLoading(true);
     setErrors({});
     
-    // Simulate OAuth registration flow
-    setTimeout(() => {
-      const mockSocialUser = {
-        email: `new.user@${provider}.com`,
-        name: `${provider[0].toUpperCase() + provider.slice(1)} User`,
-        avatar: null,
-        verified: true,
-        createdVia: provider
-      };
+    try {
+      // Attempt email verification
+      const completeSignUp = await signUp.attemptEmailAddressVerification({
+        code: code.trim()
+      });
       
-      signIn('user', mockSocialUser);
-      setSuccessMessage(`${provider[0].toUpperCase()+provider.slice(1)} signup successful! Redirecting...`);
+      console.log('Full verification result:', JSON.stringify(completeSignUp, null, 2));
+      console.log('Status:', completeSignUp.status);
+      console.log('Created user ID:', completeSignUp.createdUserId);
+      console.log('Created session ID:', completeSignUp.createdSessionId);
+      
+      // If status is complete, activate the session
+      if (completeSignUp.status === 'complete' && completeSignUp.createdSessionId) {
+        console.log('Verification complete, setting active session...');
+        await setActive({ session: completeSignUp.createdSessionId });
+        console.log('Session activated successfully');
+        setSuccessMessage('Account created successfully! Redirecting...');
+        setTimeout(() => navigate('/profile'), 1500);
+      } 
+      // If missing requirements, handle it
+      else if (completeSignUp.status === 'missing_requirements') {
+        console.log('Missing fields:', completeSignUp.missingFields);
+        console.log('Unverified fields:', completeSignUp.unverifiedFields);
+        
+        // Email is verified but other fields might be missing
+        // Redirect to login where they can complete their profile
+        setSuccessMessage('Email verified! Please sign in to complete your profile.');
+        setTimeout(() => navigate('/login'), 2000);
+      }
+      // If verification is complete but no session (shouldn't happen normally)
+      else if (completeSignUp.status === 'complete' && !completeSignUp.createdSessionId) {
+        console.warn('Verification complete but no session created');
+        setSuccessMessage('Account verified! Please sign in.');
+        setTimeout(() => navigate('/login'), 2000);
+      }
+      // Any other status
+      else {
+        console.error('Unexpected status:', completeSignUp.status);
+        setErrors({ verification: 'Verification completed with unexpected status. Please try signing in.' });
+        setTimeout(() => navigate('/login'), 2500);
+      }
+    } catch (error) {
+      console.error('Verification error:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      
+      const errorCode = error.errors?.[0]?.code;
+      const errorMessage = error.errors?.[0]?.longMessage || error.errors?.[0]?.message || 'Verification failed';
+      
+      // Handle "already verified" case
+      if (errorCode === 'verification_already_verified' || errorMessage.toLowerCase().includes('already verified')) {
+        console.log('Already verified, attempting to use existing session...');
+        
+        // Check if we have a session ID from the signup
+        if (signUp.createdSessionId) {
+          try {
+            await setActive({ session: signUp.createdSessionId });
+            setSuccessMessage('Account verified! Redirecting...');
+            setTimeout(() => navigate('/profile'), 1000);
+            return;
+          } catch (sessionError) {
+            console.error('Failed to set active session:', sessionError);
+          }
+        }
+        
+        // If no session, redirect to login
+        setSuccessMessage('Account already verified! Please sign in.');
+        setTimeout(() => navigate('/login'), 1500);
+      }
+      // Invalid code
+      else if (errorCode === 'form_code_incorrect' || errorMessage.toLowerCase().includes('incorrect')) {
+        setErrors({ verification: 'Invalid verification code. Please check and try again.' });
+      }
+      // Any other error
+      else {
+        setErrors({ verification: errorMessage });
+      }
+    } finally {
       setIsLoading(false);
-      setTimeout(() => navigate('/profile'), 900);
-    }, 1500);
+    }
+  };
+
+  const handleResendCode = async () => {
+    if (!isLoaded || resendCooldown > 0) return;
+    
+    setResendLoading(true);
+    setErrors({});
+    
+    try {
+      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+      setSuccessMessage('New verification code sent!');
+      setResendCooldown(60); // 60 second cooldown
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (error) {
+      console.error('Resend error:', error);
+      setErrors({ verification: error.errors?.[0]?.message || 'Failed to resend code. Please try again.' });
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
+  const handleSocialRegister = async (provider) => {
+    if (!isLoaded) return;
+    
+    setIsLoading(true);
+    setErrors({});
+    
+    try {
+      const oauthProvider = provider === 'google' ? 'oauth_google' : 'oauth_facebook';
+      await signUp.authenticateWithRedirect({
+        strategy: oauthProvider,
+        redirectUrl: '/sso-callback',
+        redirectUrlComplete: '/'
+      });
+    } catch (error) {
+      console.error('OAuth error:', error);
+      setErrors({ general: error.errors?.[0]?.message || `${provider} signup failed` });
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <form onSubmit={handleSubmit} className="space-y-5">
+      {verifying ? (
+        <form onSubmit={handleVerify} className="space-y-5">
+          <div className="text-center space-y-2">
+            <h3 className="text-xl font-semibold">Check your email</h3>
+            <p className="text-sm text-text-secondary">
+              We sent a verification code to <strong>{formData?.email}</strong>
+            </p>
+          </div>
+
+          {errors?.verification && (
+            <div className="p-3 bg-error/10 border border-error/20 rounded-lg">
+              <p className="text-sm text-error">{errors?.verification}</p>
+            </div>
+          )}
+
+          {successMessage && (
+            <div className="p-3 bg-success/10 border border-success/30 rounded-lg text-sm text-success animate-fade-in">
+              {successMessage}
+            </div>
+          )}
+
+          <Input
+            label="Verification Code"
+            type="text"
+            name="code"
+            placeholder="Enter verification code"
+            value={code}
+            onChange={(e) => {
+              setCode(e.target.value);
+              if (errors?.verification) {
+                setErrors({});
+              }
+            }}
+            required
+          />
+
+          <Button
+            type="submit"
+            variant="default"
+            fullWidth
+            loading={isLoading}
+            disabled={!code || isLoading}
+          >
+            Verify Email
+          </Button>
+
+          <div className="text-center text-sm text-text-secondary">
+            Didn't receive the code?{' '}
+            <button
+              type="button"
+              onClick={handleResendCode}
+              disabled={resendCooldown > 0 || resendLoading}
+              className={`font-medium ${
+                resendCooldown > 0 || resendLoading
+                  ? 'text-text-secondary cursor-not-allowed'
+                  : 'text-primary hover:underline'
+              }`}
+            >
+              {resendLoading
+                ? 'Sending...'
+                : resendCooldown > 0
+                ? `Resend in ${resendCooldown}s`
+                : 'Resend Code'}
+            </button>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            fullWidth
+            onClick={() => {
+              setVerifying(false);
+              setCode('');
+              setErrors({});
+              setSuccessMessage('');
+            }}
+            disabled={isLoading}
+          >
+            Back to Registration
+          </Button>
+        </form>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-5">
         {/* General Error */}
         {errors?.general && (
           <div className="p-3 bg-error/10 border border-error/20 rounded-lg">
@@ -354,6 +571,7 @@ const RegisterForm = () => {
           </div>
         </>
       </form>
+      )}
     </div>
   );
 };
