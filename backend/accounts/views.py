@@ -158,3 +158,30 @@ def current_user(request):
         'is_active': user.is_active,
         'date_joined': user.date_joined,
     }, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdmin])
+def list_users(request):
+    """
+    List all users (admin only)
+    
+    GET /api/accounts/users/
+    """
+    users = User.objects.all().order_by('-date_joined')
+    
+    users_data = []
+    for user in users:
+        users_data.append({
+            'id': user.id,
+            'clerk_user_id': user.clerk_user_id,
+            'email': user.email,
+            'fullName': user.fullName,
+            'role': user.role,
+            'phone': user.phone,
+            'is_active': user.is_active,
+            'date_joined': user.date_joined,
+            'last_login': user.last_login,
+        })
+    
+    return Response(users_data, status=status.HTTP_200_OK)

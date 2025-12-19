@@ -194,6 +194,21 @@ const RegisterForm = () => {
         console.log('Verification complete, setting active session...');
         await setActive({ session: completeSignUp.createdSessionId });
         console.log('Session activated successfully');
+        
+        // Trigger user sync to backend after successful registration
+        try {
+          const token = await completeSignUp.createdSessionId.getToken();
+          await fetch('http://127.0.0.1:8000/api/accounts/me/', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          console.log('User synced to backend');
+        } catch (syncError) {
+          console.error('User sync error:', syncError);
+          // Continue anyway - sync will happen on next API call
+        }
+        
         setSuccessMessage('Account created successfully! Redirecting...');
         setTimeout(() => navigate('/profile'), 1500);
       } 

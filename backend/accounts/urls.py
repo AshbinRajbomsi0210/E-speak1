@@ -10,6 +10,7 @@ urlpatterns = [
     # Clerk-based authentication
     path('me/', views.current_user, name='current-user'),
     path('invite-authority/', views.invite_authority, name='invite-authority'),
+    path('users/', views.list_users, name='list-users'),
     
     # Test endpoints
     path('test/health/', test_views.health_check, name='health-check'),

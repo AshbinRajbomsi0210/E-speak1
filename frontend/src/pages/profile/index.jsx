@@ -1,5 +1,5 @@
-import React from 'react';
-import { useUser, useClerk } from '@clerk/clerk-react';
+import React, { useEffect } from 'react';
+import { useUser, useClerk, useAuth } from '@clerk/clerk-react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/ui/Header';
 import Icon from '../../components/AppIcon';
@@ -9,7 +9,29 @@ import { Link } from 'react-router-dom';
 const Profile = () => {
   const { user, isLoaded, isSignedIn } = useUser();
   const { signOut } = useClerk();
+  const { getToken } = useAuth();
   const navigate = useNavigate();
+
+  // Auto-sync user to backend when profile loads
+  useEffect(() => {
+    const syncUser = async () => {
+      if (isSignedIn && user) {
+        try {
+          const token = await getToken();
+          await fetch('http://127.0.0.1:8000/api/accounts/me/', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          console.log('✅ User synced to backend');
+        } catch (error) {
+          console.error('User sync error:', error);
+        }
+      }
+    };
+    
+    syncUser();
+  }, [isSignedIn, user, getToken]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -50,7 +72,23 @@ const Profile = () => {
             </div>
           )}
           {isSignedIn && (
-            <div className="flex space-x-3">
+            <div className="flex flex-wrap gap-3">
+              {(user?.unsafeMetadata?.role === 'admin' || user?.publicMetadata?.role === 'admin') && (
+                <Link to="/admin">
+                  <Button variant="primary">
+                    <Icon name="Shield" size={16} />
+                    <span className="ml-2">Admin Dashboard</span>
+                  </Button>
+                </Link>
+              )}
+              {(user?.unsafeMetadata?.role === 'authority' || user?.publicMetadata?.role === 'authority') && (
+                <Link to="/authority">
+                  <Button variant="primary">
+                    <Icon name="Award" size={16} />
+                    <span className="ml-2">Authority Dashboard</span>
+                  </Button>
+                </Link>
+              )}
               <Button variant="outline" iconName="LogOut" onClick={handleSignOut}>Sign Out</Button>
             </div>
           )}

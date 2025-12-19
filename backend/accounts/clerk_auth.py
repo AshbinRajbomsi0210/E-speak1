@@ -141,10 +141,14 @@ class ClerkAuthentication(authentication.BaseAuthentication):
         )
         
         # Update user info if not created (sync on each login)
+        # IMPORTANT: Don't override role if already set in Django (Django is source of truth for role)
         if not created:
             user.email = email
             user.fullName = full_name
-            user.role = role
+            # Only update role from Clerk if user doesn't already have a role set
+            # This allows admins to manually set roles in Django that persist
+            if user.role == 'user' and role != 'user':
+                user.role = role
             user.phone = phone or user.phone  # Keep existing phone if not provided
             user.save()
         

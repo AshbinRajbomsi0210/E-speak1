@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import Icon from '../../../components/AppIcon';
-import { useUser } from '@clerk/clerk-react';
+import { useAuth } from '@clerk/clerk-react';
 
 const InviteAuthorityModal = ({ isOpen, onClose, onSuccess }) => {
-  const { getToken } = useUser();
+  const { getToken } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     first_name: '',
@@ -47,6 +47,12 @@ const InviteAuthorityModal = ({ isOpen, onClose, onSuccess }) => {
       });
 
       const data = await response.json();
+      console.log('📧 Invite response:', response.status, data);
+      
+      // Log detailed errors if present
+      if (data.details?.errors) {
+        console.error('🔍 Clerk errors:', JSON.stringify(data.details.errors, null, 2));
+      }
 
       if (response.ok && data.success) {
         setSuccess(`Invitation sent successfully to ${formData.email}`);
@@ -55,10 +61,13 @@ const InviteAuthorityModal = ({ isOpen, onClose, onSuccess }) => {
           handleClose();
         }, 2000);
       } else {
-        setError(data.error || 'Failed to send invitation');
+        console.error('❌ Invite failed:', data);
+        // Extract user-friendly error message from Clerk errors
+        const clerkError = data.details?.errors?.[0]?.message;
+        setError(clerkError || data.error || 'Failed to send invitation');
       }
     } catch (err) {
-      console.error('Invitation error:', err);
+      console.error('💥 Invitation error:', err);
       setError('Server error. Please try again later.');
     } finally {
       setIsLoading(false);

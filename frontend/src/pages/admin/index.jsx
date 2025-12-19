@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUser } from '@clerk/clerk-react';
+import { useUser, useAuth } from '@clerk/clerk-react';
 import Header from '../../components/ui/Header';
 import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
@@ -9,6 +9,7 @@ import InviteAuthorityModal from './components/InviteAuthorityModal';
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { user, isLoaded, isSignedIn } = useUser();
+  const { getToken } = useAuth();
   const role = user?.unsafeMetadata?.role;
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedIssue, setSelectedIssue] = useState(null);
@@ -17,49 +18,8 @@ const AdminDashboard = () => {
   const [filterCategory, setFilterCategory] = useState('all');
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  const [users, setUsers] = useState([
-    {
-      id: 1,
-      name: 'John Doe',
-      email: 'john@example.com',
-      role: 'user',
-      status: 'active',
-      reportsSubmitted: 12,
-      joinedAt: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString(),
-      lastActive: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
-    },
-    {
-      id: 2,
-      name: 'Jane Smith',
-      email: 'jane@example.com',
-      role: 'user',
-      status: 'active',
-      reportsSubmitted: 8,
-      joinedAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
-      lastActive: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
-    },
-    {
-      id: 3,
-      name: 'Mike Johnson',
-      email: 'mike@example.com',
-      role: 'authority',
-      status: 'active',
-      reportsSubmitted: 3,
-      joinedAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
-      lastActive: new Date().toISOString()
-    },
-    {
-      id: 4,
-      name: 'Sarah Williams',
-      email: 'sarah@example.com',
-      role: 'user',
-      status: 'suspended',
-      reportsSubmitted: 15,
-      joinedAt: new Date(Date.now() - 120 * 24 * 60 * 60 * 1000).toISOString(),
-      lastActive: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-    }
-  ]);
+  const [users, setUsers] = useState([]);
+  const [usersLoading, setUsersLoading] = useState(true);
 
   const [polls, setPolls] = useState([
     {
@@ -135,6 +95,57 @@ const AdminDashboard = () => {
 
     fetchIssues();
   }, []);
+
+  // Fetch users from backend
+  React.useEffect(() => {
+    const fetchUsers = async () => {
+      setUsersLoading(true);
+      try {
+        // Get Clerk token
+        const token = await getToken();
+        console.log('🔑 Fetching users with token:', token ? 'Token exists' : 'No token');
+        
+        const response = await fetch('http://127.0.0.1:8000/api/accounts/users/', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        console.log('📡 Users API response status:', response.status);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('✅ Fetched users from backend:', data);
+          // Transform backend data to match frontend format
+          const transformedUsers = data.map(u => ({
+            id: u.id,
+            name: u.fullName || u.email.split('@')[0],
+            email: u.email,
+            role: u.role || 'user',
+            status: u.is_active ? 'active' : 'suspended',
+            reportsSubmitted: 0, // TODO: Add when we track this
+            joinedAt: u.date_joined,
+            lastActive: u.last_login || u.date_joined,
+            clerk_user_id: u.clerk_user_id
+          }));
+          console.log('👥 Transformed users:', transformedUsers);
+          setUsers(transformedUsers);
+        } else {
+          const errorText = await response.text();
+          console.error('❌ Failed to fetch users:', response.status, errorText);
+        }
+      } catch (error) {
+        console.error('💥 Error fetching users:', error);
+      } finally {
+        setUsersLoading(false);
+      }
+    };
+
+    if (isSignedIn) {
+      fetchUsers();
+    }
+  }, [isSignedIn, getToken]);
 
   const getStatusColor = (status) => {
     const colors = {
