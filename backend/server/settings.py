@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'api',
     'issues',
     'accounts',
+    'community',
 ]
 
 MIDDLEWARE = [
@@ -161,6 +162,7 @@ AUTH_USER_MODEL = "accounts.CustomUser"
 CLERK_PUBLISHABLE_KEY = os.getenv('CLERK_PUBLISHABLE_KEY', 'pk_test_YmV0dGVyLWZseS04MS5jbGVyay5hY2NvdW50cy5kZXYk')
 CLERK_SECRET_KEY = os.getenv('CLERK_SECRET_KEY', 'sk_test_04hixLx3duuQT09mud6NKbovWWJZOev0qj4woEcqqL')  # Add your Clerk secret key here
 CLERK_DOMAIN = 'better-fly-81.clerk.accounts.dev'  # Your Clerk instance domain
+CLERK_WEBHOOK_SECRET = os.getenv('CLERK_WEBHOOK_SECRET', '')  # Add webhook secret from Clerk Dashboard
 
 # JWT Authentication settings (for Django admin fallback)
 from datetime import timedelta

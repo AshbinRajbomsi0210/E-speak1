@@ -18,6 +18,7 @@ import ReportIssue from "./pages/report-issue";
 import Issues from "./pages/issue";
 import Profile from "./pages/profile";
 import Admin from "./pages/admin";
+import Authority from "./pages/authority";
 import ConnectionTest from "./pages/connection-test";
 import TestUserSync from "./pages/test-sync";
 import {
@@ -77,6 +78,7 @@ const Routes = () => {
                 </ProtectedRoute>} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/admin" element={<Admin />} />
+              <Route path="/authority" element={<Authority />} />
               <Route path="/issues" element={<Issues />} />
               <Route path="/connection-test" element={<ConnectionTest />} />
               <Route path="/test-sync" element={<TestUserSync />} />

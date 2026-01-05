@@ -95,11 +95,12 @@ class ClerkAuthentication(authentication.BaseAuthentication):
         if not clerk_user_id:
             raise exceptions.AuthenticationFailed('Invalid user data from Clerk: missing sub')
         
-        # Fetch full user info from Clerk API since JWT may not have all data
-        try:
-            user_info = get_clerk_user_info(clerk_user_id)
-        except Exception as e:
-            # If API call fails, try to use JWT data
+        # ALWAYS fetch full user info from Clerk API to get metadata
+        user_info = get_clerk_user_info(clerk_user_id)
+        
+        if not user_info:
+            print(f"⚠️ Failed to fetch user info from Clerk API for {clerk_user_id}")
+            print(f"⚠️ Falling back to JWT data (may not have metadata)")
             user_info = clerk_data
         
         # Get email from various possible locations
@@ -124,6 +125,10 @@ class ClerkAuthentication(authentication.BaseAuthentication):
         role = unsafe_metadata.get('role') or public_metadata.get('role', 'user')
         phone = unsafe_metadata.get('phone', '')
         
+        print(f"🔍 Syncing user: {email}")
+        print(f"   Clerk role from metadata: {role}")
+        print(f"   unsafe_metadata: {unsafe_metadata}")
+        
         # Get phone from phone_numbers array if available
         if not phone and isinstance(user_info.get('phone_numbers'), list) and user_info['phone_numbers']:
             phone = user_info['phone_numbers'][0].get('phone_number', '')
@@ -139,6 +144,9 @@ class ClerkAuthentication(authentication.BaseAuthentication):
                 'is_active': True,
             }
         )
+        
+        print(f"   Created new user: {created}")
+        print(f"   Final Django role: {user.role}")
         
         # Update user info if not created (sync on each login)
         # IMPORTANT: Don't override role if already set in Django (Django is source of truth for role)

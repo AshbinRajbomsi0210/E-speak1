@@ -81,15 +81,15 @@ const CreatePollModal = ({ isOpen, onClose, onCreatePoll }) => {
     
     if (validateForm()) {
       const validOptions = pollData?.options?.filter(opt => opt?.trim());
+      const endDate = new Date(Date.now() + parseInt(pollData.duration) * 24 * 60 * 60 * 1000);
+      
+      // Format data to match backend API expectations
       const newPoll = {
-        ...pollData,
-        options: validOptions?.map(text => ({ text, votes: 0 })),
-        id: Date.now(),
-        status: 'active',
-        createdAt: new Date()?.toISOString(),
-        endDate: new Date(Date.now() + parseInt(pollData.duration) * 24 * 60 * 60 * 1000)?.toISOString(),
-        commentsCount: 0,
-        hasUserVoted: false
+        title: pollData.title,
+        description: pollData.description,
+        category: pollData.category,
+        end_date: endDate.toISOString(),
+        options: validOptions // Send as array of strings
       };
       
       onCreatePoll(newPoll);

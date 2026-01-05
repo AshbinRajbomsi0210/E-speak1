@@ -10,7 +10,7 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const { user, isLoaded, isSignedIn } = useUser();
   const { getToken } = useAuth();
-  const role = user?.unsafeMetadata?.role;
+  const [userRole, setUserRole] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedIssue, setSelectedIssue] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -51,12 +51,37 @@ const AdminDashboard = () => {
   
   const [showInviteModal, setShowInviteModal] = useState(false);
 
-  // Redirect if not admin or authority
+  // Fetch user role from Django backend
   React.useEffect(() => {
-    if (isLoaded && (!isSignedIn || (role !== 'admin' && role !== 'authority'))) {
-      navigate('/home');
+    const fetchUserRole = async () => {
+      if (!isSignedIn) return;
+      
+      try {
+        const token = await getToken();
+        const response = await fetch('http://127.0.0.1:8000/api/accounts/me/', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setUserRole(data.role);
+          
+          // Redirect if not admin or authority
+          if (data.role !== 'admin' && data.role !== 'authority') {
+            navigate('/home');
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user role:', error);
+      }
+    };
+
+    if (isLoaded && isSignedIn) {
+      fetchUserRole();
     }
-  }, [isLoaded, isSignedIn, role, navigate]);
+  }, [isLoaded, isSignedIn, getToken, navigate]);
 
   // Fetch issues from backend
   React.useEffect(() => {
@@ -257,10 +282,43 @@ const AdminDashboard = () => {
     ));
   };
 
-  const handleUserRoleChange = (userId, newRole) => {
-    setUsers(prev => prev.map(user => 
-      user.id === userId ? { ...user, role: newRole } : user
-    ));
+  const handleUserRoleChange = async (userId, newRole) => {
+    try {
+      const token = await getToken();
+      
+      const response = await fetch(`http://127.0.0.1:8000/api/accounts/users/${userId}/role/`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ role: newRole })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Role updated:', data);
+        
+        // Update local state
+        setUsers(prev => prev.map(user => 
+          user.id === userId ? { ...user, role: newRole } : user
+        ));
+        
+        // Update selected user if it's the same
+        if (selectedUser?.id === userId) {
+          setSelectedUser(prev => ({ ...prev, role: newRole }));
+        }
+        
+        alert(`User role updated to ${newRole} successfully!`);
+      } else {
+        const error = await response.json();
+        console.error('❌ Failed to update role:', error);
+        alert('Failed to update user role');
+      }
+    } catch (error) {
+      console.error('💥 Error updating role:', error);
+      alert('Error updating user role');
+    }
   };
 
   const handleDeleteUser = (userId) => {
@@ -330,7 +388,7 @@ const AdminDashboard = () => {
               </div>
               <div className="flex items-center space-x-3">
                 <span className="px-3 py-1 bg-primary/10 text-primary text-sm font-medium rounded-full capitalize">
-                  {role}
+                  {userRole || 'Loading...'}
                 </span>
               </div>
             </div>

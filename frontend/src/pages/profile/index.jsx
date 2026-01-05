@@ -15,23 +15,39 @@ const Profile = () => {
   // Auto-sync user to backend when profile loads
   useEffect(() => {
     const syncUser = async () => {
-      if (isSignedIn && user) {
+      if (isSignedIn && user && isLoaded) {
         try {
           const token = await getToken();
-          await fetch('http://127.0.0.1:8000/api/accounts/me/', {
+          
+          if (!token) {
+            console.log('⏳ Token not ready yet');
+            return;
+          }
+          
+          const response = await fetch('http://127.0.0.1:8000/api/accounts/me/', {
             headers: {
               'Authorization': `Bearer ${token}`
             }
           });
-          console.log('✅ User synced to backend');
+          
+          if (response.ok) {
+            console.log('✅ User synced to backend');
+          } else {
+            console.error('❌ Sync failed:', response.status);
+          }
         } catch (error) {
-          console.error('User sync error:', error);
+          console.error('💥 User sync error:', error);
         }
       }
     };
     
-    syncUser();
-  }, [isSignedIn, user, getToken]);
+    // Add a small delay to ensure token is ready
+    const timer = setTimeout(() => {
+      syncUser();
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [isSignedIn, user, getToken, isLoaded]);
 
   const handleSignOut = async () => {
     await signOut();

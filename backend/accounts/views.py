@@ -97,9 +97,8 @@ def invite_authority(request):
         
         payload = {
             'email_address': email,
-            'public_metadata': {},
-            'unsafe_metadata': {
-                'role': 'authority',  # Pre-assign authority role
+            'public_metadata': {
+                'role': 'authority',  # Use public_metadata instead
             },
             'notify': True,  # Send invitation email
         }
@@ -185,3 +184,60 @@ def list_users(request):
         })
     
     return Response(users_data, status=status.HTTP_200_OK)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAuthenticated, IsAdmin])
+def update_user_role(request, user_id):
+    """
+    Update user role (admin only)
+    
+    PATCH /api/accounts/users/<user_id>/role/
+    Body: { "role": "user|admin|authority" }
+    """
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    
+    new_role = request.data.get('role')
+    
+    if new_role not in ['user', 'admin', 'authority']:
+        return Response({'error': 'Invalid role. Must be: user, admin, or authority'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Update Django user role
+    user.role = new_role
+    user.save()
+    
+    # Also update Clerk metadata if user has clerk_user_id
+    if user.clerk_user_id:
+        try:
+            headers = {
+                'Authorization': f'Bearer {settings.CLERK_SECRET_KEY}',
+                'Content-Type': 'application/json',
+            }
+            
+            clerk_response = requests.patch(
+                f'https://api.clerk.com/v1/users/{user.clerk_user_id}',
+                headers=headers,
+                json={
+                    'unsafe_metadata': {
+                        'role': new_role
+                    }
+                }
+            )
+            
+            if clerk_response.status_code != 200:
+                print(f"Warning: Failed to update Clerk metadata for user {user.email}")
+        except Exception as e:
+            print(f"Error updating Clerk: {e}")
+    
+    return Response({
+        'success': True,
+        'message': f'User role updated to {new_role}',
+        'user': {
+            'id': user.id,
+            'email': user.email,
+            'role': user.role,
+        }
+    }, status=status.HTTP_200_OK)

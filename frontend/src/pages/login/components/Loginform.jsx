@@ -109,15 +109,17 @@ const LoginForm = ({ forcedRole, redirectTo, onRoleChange }) => {
         
         setSuccessMessage('Authentication successful. Redirecting...');
 
+        // Redirect based on role or custom redirectTo
         const redirectPath = redirectTo || 
-          ((formData.userType === 'admin' || formData.userType === 'authority') ? '/admin' : '/profile');
+          (formData.userType === 'authority' ? '/authority' : 
+           formData.userType === 'admin' ? '/admin' : '/home');
 
         // Redirect after a short delay to allow session to be fully established
         setTimeout(() => navigate(`${redirectPath}`, { replace: true }), 900);
       } else {
-        // Handle other statuses if needed (e.g., needs second factor)
+        // Handle other statuses
         console.log('Sign in status:', result.status);
-        setErrors({ general: 'Sign in requires additional steps' });
+        setErrors({ general: 'Sign in requires additional steps. Please contact support.' });
       }
     } catch (err) {
       console.error('Login error:', err);

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '@clerk/clerk-react';
 import Icon from '../../components/AppIcon';
 import Image from '../../components/AppImage';
 import Button from '../../components/ui/Button';
@@ -11,290 +12,205 @@ import CreatePollModal from './components/CreatePollModal';
 import DiscussionThread from './components/DiscussionThread';
 import UserProgress from './components/UserProgress';
 
+const API_BASE_URL = 'http://127.0.0.1:8000/api/community';
+
 const Community = () => {
+  const { getToken } = useAuth();
   const [activeTab, setActiveTab] = useState('polls');
   const [isCreatePollOpen, setIsCreatePollOpen] = useState(false);
   const [polls, setPolls] = useState([]);
+  const [discussions, setDiscussions] = useState([]);
+  const [leaders, setLeaders] = useState([]);
+  const [activities, setActivities] = useState([]);
+  const [userProgress, setUserProgress] = useState(null);
+  const [communityStats, setCommunityStats] = useState({});
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterCategory, setFilterCategory] = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [loadedTabs, setLoadedTabs] = useState({ polls: false });
 
-  // Mock data
-  const mockPolls = [
-  {
-    id: 1,
-    title: "Should we install more bike lanes on Main Street?",
-    description: "The city is considering adding dedicated bike lanes to improve cycling safety and reduce traffic congestion. This would require removing some parking spaces.",
-    options: [
-    { text: "Yes, install bike lanes", votes: 156 },
-    { text: "No, keep parking spaces", votes: 89 },
-    { text: "Install partial bike lanes", votes: 67 },
-    { text: "Need more information", votes: 23 }],
-
-    status: "active",
-    category: "transportation",
-    endDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)?.toISOString(),
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)?.toISOString(),
-    commentsCount: 42,
-    hasUserVoted: false
-  },
-  {
-    id: 2,
-    title: "Community Garden Location Selection",
-    description: "Help us choose the best location for our new community garden project. The garden will provide fresh produce and educational opportunities for residents.",
-    options: [
-    { text: "Central Park East Side", votes: 234 },
-    { text: "Riverside Community Center", votes: 198 },
-    { text: "Lincoln Elementary School", votes: 145 }],
-
-    status: "active",
-    category: "environment",
-    endDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000)?.toISOString(),
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)?.toISOString(),
-    commentsCount: 67,
-    hasUserVoted: true
-  },
-  {
-    id: 3,
-    title: "Extended Library Hours Proposal",
-    description: "The library board is considering extending operating hours to include evenings and weekends to better serve working families and students.",
-    options: [
-    { text: "Extend to 9 PM weekdays", votes: 312 },
-    { text: "Add Saturday hours", votes: 278 },
-    { text: "Keep current hours", votes: 45 }],
-
-    status: "ended",
-    category: "general",
-    endDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)?.toISOString(),
-    createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000)?.toISOString(),
-    commentsCount: 89,
-    hasUserVoted: true
-  }];
-
-
-  const mockLeaders = [
-  {
-    id: 1,
-    name: "Sarah Johnson",
-    avatar: "https://ui-avatars.com/api/?name=Sarah+Johnson&background=0D8ABC&color=fff",
-    avatarAlt: "Sarah Johnson avatar",
-    points: 2847,
-    level: "Civic Champion",
-    topBadge: "Top Reporter",
-    recentActivity: "Reported 3 issues this week"
-  },
-  {
-    id: 2,
-    name: "Michael Chen",
-    avatar: "https://ui-avatars.com/api/?name=Michael+Chen&background=6366F1&color=fff",
-    avatarAlt: "Michael Chen avatar",
-    points: 2156,
-    level: "Community Helper",
-    topBadge: "Problem Solver",
-    recentActivity: "Voted on 5 polls today"
-  },
-  {
-    id: 3,
-    name: "Emily Rodriguez",
-    avatar: "https://ui-avatars.com/api/?name=Emily+Rodriguez&background=EC4899&color=fff",
-    avatarAlt: "Emily Rodriguez avatar",
-    points: 1923,
-    level: "Active Citizen",
-    topBadge: "Discussion Leader",
-    recentActivity: "Started 2 discussions"
-  },
-  {
-    id: 4,
-    name: "David Thompson",
-    avatar: "https://ui-avatars.com/api/?name=David+Thompson&background=10B981&color=fff",
-    avatarAlt: "David Thompson avatar",
-    points: 1678,
-    level: "Engaged Voter",
-    topBadge: "Active Voter",
-    recentActivity: "Commented on 8 issues"
-  },
-  {
-    id: 5,
-    name: "Lisa Park",
-    avatar: "https://ui-avatars.com/api/?name=Lisa+Park&background=F59E0B&color=fff",
-    avatarAlt: "Lisa Park avatar",
-    points: 1445,
-    level: "Rising Star",
-    topBadge: "Community Helper",
-    recentActivity: "Resolved 2 issues"
-  }];
-
-
-  const mockActivities = [
-  {
-    id: 1,
-    type: "government_response",
-    user: {
-      name: "City Planning Dept",
-      avatar: "https://ui-avatars.com/api/?name=City+Planning&background=3B82F6&color=fff",
-      avatarAlt: "City Planning Dept avatar"
-    },
-    description: "Responded to the Main Street bike lane proposal with detailed implementation timeline",
-    relatedItem: "Main Street Bike Lane Poll",
-    timestamp: new Date(Date.now() - 15 * 60 * 1000)?.toISOString()
-  },
-  {
-    id: 2,
-    type: "poll_created",
-    user: {
-      name: "Community Board",
-      avatar: "https://ui-avatars.com/api/?name=Community+Board&background=8B5CF6&color=fff",
-      avatarAlt: "Community Board avatar"
-    },
-    description: "Created a new poll about weekend farmers market location",
-    relatedItem: "Weekend Farmers Market Poll",
-    timestamp: new Date(Date.now() - 45 * 60 * 1000)?.toISOString()
-  },
-  {
-    id: 3,
-    type: "issue_resolved",
-    user: {
-      name: "Public Works",
-      avatar: "https://ui-avatars.com/api/?name=Public+Works&background=10B981&color=fff",
-      avatarAlt: "Public Works avatar"
-    },
-    description: "Marked the broken streetlight on Oak Avenue as resolved",
-    relatedItem: "Streetlight Repair #4521",
-    timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000)?.toISOString()
-  },
-  {
-    id: 4,
-    type: "comment_added",
-    user: {
-      name: "Jennifer Martinez",
-      avatar: "https://ui-avatars.com/api/?name=Jennifer+Martinez&background=EC4899&color=fff",
-      avatarAlt: "Jennifer Martinez avatar"
-    },
-    description: "Added a detailed comment about traffic safety concerns in the school zone",
-    relatedItem: "School Zone Safety Discussion",
-    timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000)?.toISOString()
-  },
-  {
-    id: 5,
-    type: "vote_cast",
-    user: {
-      name: "Robert Kim",
-      avatar: "https://ui-avatars.com/api/?name=Robert+Kim&background=F59E0B&color=fff",
-      avatarAlt: "Robert Kim avatar"
-    },
-    description: "Voted in favor of extended library hours proposal",
-    relatedItem: "Library Hours Extension Poll",
-    timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000)?.toISOString()
-  }];
-
-
-  const mockDiscussions = [
-  {
-    id: 1,
-    title: "Traffic Safety Improvements Needed on School Routes",
-    preview: "Parents are concerned about speeding vehicles during school hours. We need better crosswalks and speed bumps...",
-    author: {
-      name: "Parent Council",
-      avatar: "https://ui-avatars.com/api/?name=Parent+Council&background=EF4444&color=fff",
-      avatarAlt: "Parent Council avatar"
-    },
-    category: "safety",
-    repliesCount: 23,
-    views: 156,
-    upvotes: 45,
-    createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000)?.toISOString(),
-    isPinned: true,
-    replies: [
-    {
-      id: 1,
-      author: {
-        name: "Traffic Engineer",
-        avatar: "https://ui-avatars.com/api/?name=Traffic+Engineer&background=14B8A6&color=fff",
-        avatarAlt: "Traffic Engineer avatar"
-      },
-      content: "We're currently conducting a traffic study on these routes. Results should be available next month.",
-      upvotes: 12,
-      createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000)?.toISOString()
-    }]
-
-  },
-  {
-    id: 2,
-    title: "Community Center Renovation Plans",
-    preview: "The community center needs updates to better serve our growing population. What improvements should we prioritize?",
-    author: {
-      name: "Facilities Manager",
-      avatar: "https://ui-avatars.com/api/?name=Facilities+Manager&background=6366F1&color=fff",
-      avatarAlt: "Facilities Manager avatar"
-    },
-    category: "infrastructure",
-    repliesCount: 18,
-    views: 89,
-    upvotes: 32,
-    createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000)?.toISOString(),
-    isPinned: false,
-    replies: []
-  }];
-
-
-  const mockUserStats = {
-    name: "Alex Johnson",
-    avatar: "https://ui-avatars.com/api/?name=Alex+Johnson&background=0D8ABC&color=fff&size=128",
-    avatarAlt: "Alex Johnson avatar",
-    level: 5,
-    title: "Community Helper",
-    location: "Downtown District",
-    currentPoints: 1847,
-    nextLevelPoints: 2500,
-    totalReports: 23,
-    totalVotes: 67,
-    totalComments: 145,
-    streak: 12,
-    badges: ["Top Reporter", "Active Voter", "Community Helper"],
-    recentAchievements: [
-    {
-      title: "Consistent Contributor",
-      description: "Participated for 10 consecutive days",
-      points: 100
-    },
-    {
-      title: "Poll Creator",
-      description: "Created your first community poll",
-      points: 50
-    }]
-
-  };
-
+  // Fetch data from backend
   useEffect(() => {
-    setPolls(mockPolls);
-  }, []);
+    fetchPolls();
+  }, [filterStatus, filterCategory]);
 
-  const handleVote = (pollId, optionIndex) => {
-    setPolls((prevPolls) =>
-    prevPolls?.map((poll) => {
-      if (poll?.id === pollId) {
-        const updatedOptions = poll?.options?.map((option, index) => {
-          if (index === optionIndex) {
-            return { ...option, votes: option?.votes + 1 };
-          }
-          return option;
-        });
-        return { ...poll, options: updatedOptions, hasUserVoted: true };
+  // Load tab data when switching tabs
+  useEffect(() => {
+    if (activeTab === 'discussions' && !loadedTabs.discussions) {
+      fetchDiscussions();
+    } else if (activeTab === 'leaderboard' && !loadedTabs.leaderboard) {
+      fetchLeaderboard();
+    } else if (activeTab === 'activity' && !loadedTabs.activity) {
+      fetchActivity();
+    }
+  }, [activeTab]);
+
+  const fetchPolls = async () => {
+    try {
+      setLoading(true);
+      const token = await getToken();
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      };
+
+      const pollsParams = new URLSearchParams();
+      if (filterStatus !== 'all') pollsParams.append('status', filterStatus);
+      if (filterCategory !== 'all') pollsParams.append('category', filterCategory);
+
+      const [pollsRes, progressRes, statsRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/polls/?${pollsParams}`, { headers }),
+        fetch(`${API_BASE_URL}/user-progress/`, { headers }).catch(() => null),
+        fetch(`${API_BASE_URL}/stats/`, { headers }).catch(() => null)
+      ]);
+
+      if (pollsRes.ok) {
+        const pollsData = await pollsRes.json();
+        const pollsArray = Array.isArray(pollsData) ? pollsData : (pollsData.results || []);
+        setPolls(pollsArray);
+      } else {
+        setPolls([]);
       }
-      return poll;
-    })
-    );
+
+      if (progressRes?.ok) {
+        const progressData = await progressRes.json();
+        setUserProgress(progressData);
+      }
+
+      if (statsRes?.ok) {
+        const statsData = await statsRes.json();
+        setCommunityStats(statsData);
+      }
+
+      setLoadedTabs(prev => ({ ...prev, polls: true }));
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching polls:', error);
+      setPolls([]);
+      setLoading(false);
+    }
   };
 
-  const handleCreatePoll = (newPoll) => {
-    setPolls((prevPolls) => [newPoll, ...prevPolls]);
+  const fetchDiscussions = async () => {
+    try {
+      const token = await getToken();
+      const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+      
+      const discussionsRes = await fetch(`${API_BASE_URL}/discussions/`, { headers });
+      if (discussionsRes.ok) {
+        const discussionsData = await discussionsRes.json();
+        const discussionsArray = Array.isArray(discussionsData) ? discussionsData : (discussionsData.results || []);
+        setDiscussions(discussionsArray);
+      }
+      setLoadedTabs(prev => ({ ...prev, discussions: true }));
+    } catch (error) {
+      console.error('Error fetching discussions:', error);
+    }
+  };
+
+  const fetchLeaderboard = async () => {
+    try {
+      const token = await getToken();
+      const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+      
+      const leaderboardRes = await fetch(`${API_BASE_URL}/leaderboard/?limit=10`, { headers });
+      if (leaderboardRes.ok) {
+        const leaderboardData = await leaderboardRes.json();
+        const leaderboardArray = Array.isArray(leaderboardData) ? leaderboardData : (leaderboardData.results || []);
+        setLeaders(leaderboardArray);
+      }
+      setLoadedTabs(prev => ({ ...prev, leaderboard: true }));
+    } catch (error) {
+      console.error('Error fetching leaderboard:', error);
+    }
+  };
+
+  const fetchActivity = async () => {
+    try {
+      const token = await getToken();
+      const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+      
+      const activityRes = await fetch(`${API_BASE_URL}/activity-feed/?limit=20`, { headers });
+      if (activityRes.ok) {
+        const activityData = await activityRes.json();
+        const activityArray = Array.isArray(activityData) ? activityData : (activityData.results || []);
+        setActivities(activityArray);
+      }
+      setLoadedTabs(prev => ({ ...prev, activity: true }));
+    } catch (error) {
+      console.error('Error fetching activity:', error);
+    }
+  };
+
+  const fetchData = async () => {
+    // Refresh current tab data
+    if (activeTab === 'polls') {
+      await fetchPolls();
+    } else if (activeTab === 'discussions') {
+      await fetchDiscussions();
+    } else if (activeTab === 'leaderboard') {
+      await fetchLeaderboard();
+    } else if (activeTab === 'activity') {
+      await fetchActivity();
+    }
+  };
+
+  const handleVote = async (pollId, optionId) => {
+    try {
+      const token = await getToken();
+      const response = await fetch(`${API_BASE_URL}/polls/${pollId}/vote/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ option_id: optionId }),
+      });
+
+      if (response.ok) {
+        const updatedPoll = await response.json();
+        setPolls(prevPolls => 
+          prevPolls.map(poll => poll.id === pollId ? updatedPoll : poll)
+        );
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to vote');
+      }
+    } catch (error) {
+      console.error('Error voting:', error);
+      alert('Failed to vote. Please try again.');
+    }
+  };
+
+  const handleCreatePoll = async (newPollData) => {
+    try {
+      const token = await getToken();
+      const response = await fetch(`${API_BASE_URL}/polls/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newPollData),
+      });
+
+      if (response.ok) {
+        const createdPoll = await response.json();
+        setIsCreatePollOpen(false);
+        // Refresh all data to get the new poll and updated user progress
+        await fetchData();
+      } else {
+        const error = await response.json();
+        alert('Failed to create poll: ' + JSON.stringify(error));
+      }
+    } catch (error) {
+      console.error('Error creating poll:', error);
+      alert('Failed to create poll. Please try again.');
+    }
   };
 
   const getFilteredPolls = () => {
-    return polls?.filter((poll) => {
-      const statusMatch = filterStatus === 'all' || poll?.status === filterStatus;
-      const categoryMatch = filterCategory === 'all' || poll?.category === filterCategory;
-      return statusMatch && categoryMatch;
-    });
+    return polls;
   };
 
   const tabItems = [
@@ -303,6 +219,21 @@ const Community = () => {
   { id: 'leaderboard', label: 'Leaderboard', icon: 'Trophy' },
   { id: 'activity', label: 'Activity', icon: 'Activity' }];
 
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="pt-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="text-center">
+              <p className="text-text-secondary">Loading community data...</p>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -397,30 +328,43 @@ const Community = () => {
 
                   {/* Polls List */}
                   <div className="space-y-4">
-                    {getFilteredPolls()?.map((poll) =>
-                  <PollCard key={poll?.id} poll={poll} onVote={handleVote} />
-                  )}
+                    {getFilteredPolls()?.length > 0 ? (
+                      getFilteredPolls()?.map((poll) =>
+                        <PollCard key={poll?.id} poll={poll} onVote={handleVote} />
+                      )
+                    ) : (
+                      <div className="civic-card p-8 text-center">
+                        <Icon name="Vote" size={48} className="mx-auto text-text-secondary mb-4" />
+                        <h3 className="text-lg font-semibold text-foreground mb-2">No Polls Available</h3>
+                        <p className="text-text-secondary mb-4">
+                          Be the first to create a poll and engage your community!
+                        </p>
+                        <Button onClick={() => setIsCreatePollOpen(true)}>
+                          Create First Poll
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               }
 
               {activeTab === 'discussions' &&
-              <DiscussionThread discussions={mockDiscussions} />
+              <DiscussionThread discussions={discussions} />
               }
 
               {activeTab === 'leaderboard' &&
-              <LeaderboardCard leaders={mockLeaders} />
+              <LeaderboardCard leaders={leaders} />
               }
 
               {activeTab === 'activity' &&
-              <ActivityFeed activities={mockActivities} />
+              <ActivityFeed activities={activities} />
               }
             </div>
 
             {/* Sidebar */}
             <div className="space-y-6">
               {/* User Progress */}
-              <UserProgress userStats={mockUserStats} />
+              {userProgress && <UserProgress userStats={userProgress} />}
 
               {/* Quick Stats */}
               <div className="civic-card p-6">
@@ -428,19 +372,19 @@ const Community = () => {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-text-secondary">Active Polls</span>
-                    <span className="font-semibold text-foreground">12</span>
+                    <span className="font-semibold text-foreground">{communityStats.active_polls || 0}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-text-secondary">Total Participants</span>
-                    <span className="font-semibold text-foreground">1,247</span>
+                    <span className="text-text-secondary">Total Polls</span>
+                    <span className="font-semibold text-foreground">{communityStats.total_polls || 0}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-text-secondary">Issues Resolved</span>
-                    <span className="font-semibold text-foreground">89</span>
+                    <span className="text-text-secondary">Total Members</span>
+                    <span className="font-semibold text-foreground">{communityStats.total_members || 0}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-text-secondary">This Week</span>
-                    <span className="font-semibold text-success">+23</span>
+                    <span className="text-text-secondary">Total Votes</span>
+                    <span className="font-semibold text-success">{communityStats.total_votes || 0}</span>
                   </div>
                 </div>
               </div>

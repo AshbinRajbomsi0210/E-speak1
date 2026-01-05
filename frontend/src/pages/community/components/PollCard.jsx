@@ -5,12 +5,14 @@ import PollDetailModal from './PollDetailModal';
 
 const PollCard = ({ poll, onVote }) => {
   const [selectedOption, setSelectedOption] = useState(null);
-  const [hasVoted, setHasVoted] = useState(poll?.hasUserVoted);
+  const [hasVoted, setHasVoted] = useState(poll?.has_user_voted || poll?.hasUserVoted);
   const [showDetail, setShowDetail] = useState(false);
 
   const handleVote = () => {
     if (selectedOption !== null && !hasVoted) {
-      onVote(poll?.id, selectedOption);
+      // Pass option.id instead of index
+      const option = poll?.options[selectedOption];
+      onVote(poll?.id, option?.id);
       setHasVoted(true);
     }
   };
@@ -26,7 +28,7 @@ const PollCard = ({ poll, onVote }) => {
 
   const getTimeRemaining = () => {
     const now = new Date();
-    const endDate = new Date(poll.endDate);
+    const endDate = new Date(poll.end_date || poll.endDate);
     const diff = endDate - now;
     
     if (diff <= 0) return 'Ended';
@@ -66,7 +68,7 @@ const PollCard = ({ poll, onVote }) => {
         <div className="flex items-center space-x-2">
           <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); setShowDetail(true); }}>
             <Icon name="MessageCircle" size={16} />
-            <span className="ml-1">{poll?.commentsCount}</span>
+            <span className="ml-1">{poll?.comments_count || poll?.commentsCount || 0}</span>
           </Button>
           <Button variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
             <Icon name="Share2" size={16} />
