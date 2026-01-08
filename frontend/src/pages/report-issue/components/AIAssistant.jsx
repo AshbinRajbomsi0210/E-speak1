@@ -4,8 +4,14 @@ import Button from '../../../components/ui/Button';
 
 const AIAssistant = ({ formData, onSuggestionApply }) => {
   const [suggestions, setSuggestions] = useState([]);
+  const [aiInsights, setAiInsights] = useState(null);
   const [duplicateWarning, setDuplicateWarning] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatInput, setChatInput] = useState('');
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [confirmModal, setConfirmModal] = useState(null);
 
   const mockSuggestions = [
     {
@@ -13,26 +19,91 @@ const AIAssistant = ({ formData, onSuggestionApply }) => {
       type: 'category',
       title: 'Suggested Category: Infrastructure',
       description: 'Based on keywords like "pothole" and "road", this appears to be an infrastructure issue.',
+      benefit: 'Helps route your report to the right department faster',
       confidence: 92,
-      action: () => onSuggestionApply('category', 'infrastructure')
+      field: 'category',
+      value: 'infrastructure'
     },
     {
       id: 2,
       type: 'priority',
       title: 'Recommended Priority: High',
       description: 'Safety-related keywords detected. This may require urgent attention.',
+      benefit: 'Ensures faster response time from authorities',
       confidence: 87,
-      action: () => onSuggestionApply('priority', 'high')
+      field: 'priority',
+      value: 'high'
     },
     {
-      id: 3,
-      type: 'enhancement',
-      title: 'Title Enhancement',
-      description: 'Consider adding location details to make the title more specific.',
-      confidence: 78,
-      action: () => onSuggestionApply('title', `${formData?.title} - Main Street Area`)
+      id: 4,
+      type: 'photo',
+      title: '📸 Photo Reminder',
+      description: 'Adding photos helps authorities understand and resolve issues 3x faster.',
+      benefit: '70% of reports with photos get resolved within 7 days',
+      confidence: 95,
+      field: 'reminder',
+      value: 'photo'
+    },
+    {
+      id: 5,
+      type: 'description',
+      title: '✍️ Description Tips',
+      description: 'Include specific details like timing, frequency, and exact location for better assistance.',
+      benefit: 'Detailed reports get assigned to the right team 2x faster',
+      confidence: 88,
+      field: 'tip',
+      value: 'description'
     }
   ];
+
+  // Generate creative title enhancements
+  const generateTitleEnhancement = (title, description) => {
+    if (!title || !description || title.length < 5) return null;
+
+    const lowerDesc = description.toLowerCase();
+    const lowerTitle = title.toLowerCase();
+    let enhancedTitle = title;
+    let improved = false;
+
+    // Simple improvements based on keywords
+    const improvements = {
+      'noise': () => !lowerTitle.includes('noise') ? `Noise Issue: ${title}` : null,
+      'pothole': () => !lowerTitle.includes('dangerous') && !lowerTitle.includes('large') ? `Large ${title}` : null,
+      'garbage': () => !lowerTitle.includes('uncollected') ? `Uncollected Garbage: ${title}` : null,
+      'trash': () => !lowerTitle.includes('overflow') ? `Overflowing ${title}` : null,
+      'broken': () => !lowerTitle.includes('damaged') ? title.replace(/broken/i, 'Damaged') : null,
+      'light': () => lowerDesc.includes('street') && !lowerTitle.includes('street') ? `Broken Street Light: ${title}` : null,
+      'water leak': () => !lowerTitle.includes('leak') ? `Water Leak: ${title}` : null,
+      'graffiti': () => !lowerTitle.includes('vandalism') ? `Graffiti: ${title}` : null
+    };
+
+    // Apply first matching improvement
+    for (const [keyword, improver] of Object.entries(improvements)) {
+      if (lowerDesc.includes(keyword)) {
+        const improved = improver();
+        if (improved) {
+          enhancedTitle = improved;
+          return enhancedTitle.length <= 80 ? enhancedTitle : null;
+        }
+      }
+    }
+
+    // Add simple location context if very specific
+    const streetMatch = description.match(/\b([A-Z][a-z]+\s+(?:Street|St|Road|Rd|Avenue|Ave))\b/);
+    if (streetMatch && !title.includes(streetMatch[1]) && title.length < 40) {
+      enhancedTitle = `${title} on ${streetMatch[1]}`;
+      return enhancedTitle.length <= 80 ? enhancedTitle : null;
+    }
+
+    // Only add urgency for truly urgent cases
+    if ((lowerDesc.includes('dangerous') || lowerDesc.includes('emergency')) && 
+        !lowerTitle.includes('urgent') && !lowerTitle.includes('emergency')) {
+      enhancedTitle = `Urgent: ${title}`;
+      return enhancedTitle.length <= 80 ? enhancedTitle : null;
+    }
+
+    return null;
+  };
 
   const mockDuplicates = [
     {
@@ -53,11 +124,50 @@ const AIAssistant = ({ formData, onSuggestionApply }) => {
     }
   ];
 
+  // Fetch AI insights from civic AI chatbot
+  const fetchAIInsights = async () => {
+    if (!formData?.description || formData.description.length < 20) {
+      setAiInsights(null);
+      return;
+    }
+
+    setIsAnalyzing(true);
+
+    try {
+      // Build a concise, specific question
+      const question = `In 2-3 sentences: For ${formData.category || 'civic'} issues like "${formData.description.substring(0, 80)}", which department handles this and typical resolution time?`;
+
+      const response = await fetch('http://localhost:8000/api/civic-ai/chat/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Parse answer into bullet points (2-3 max)
+        const sentences = data.answer.split(/[.!?]\s+/).filter(s => s.trim().length > 15);
+        const bulletPoints = sentences.slice(0, 3).map(s => s.trim() + (s.endsWith('.') ? '' : '.'));
+        
+        setAiInsights({
+          points: bulletPoints,
+          confidence: data.confidence,
+          context: data.context
+        });
+      }
+    } catch (error) {
+      console.error('AI insights error:', error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   useEffect(() => {
     if (formData?.title && formData?.description) {
       setIsAnalyzing(true);
       
-      // Simulate AI analysis delay
+      // Debounce AI analysis
       const timer = setTimeout(() => {
         // Check for potential duplicates
         if (formData?.title?.toLowerCase()?.includes('pothole') || 
@@ -77,31 +187,145 @@ const AIAssistant = ({ formData, onSuggestionApply }) => {
             return formData?.description?.toLowerCase()?.includes('safety') ||
                    formData?.description?.toLowerCase()?.includes('dangerous');
           }
-          return true;
+          if (suggestion?.type === 'photo') {
+            return (!formData?.photos || formData.photos.length === 0);
+          }
+          if (suggestion?.type === 'description') {
+            return formData?.description && formData.description.length < 100;
+          }
+          return false;
         });
+
+        // Add creative title enhancement if possible
+        const enhancedTitle = generateTitleEnhancement(formData.title, formData.description);
+        if (enhancedTitle) {
+          relevantSuggestions.push({
+            id: 3,
+            type: 'enhancement',
+            title: '✨ Enhanced Title Suggestion',
+            description: 'We\'ve crafted a more descriptive and attention-grabbing title for your report.',
+            benefit: 'Clear titles help officials prioritize and respond faster',
+            enhancedTitle: enhancedTitle,
+            confidence: 85,
+            field: 'title',
+            value: enhancedTitle
+          });
+        }
         
         setSuggestions(relevantSuggestions);
-        setIsAnalyzing(false);
-      }, 1500);
+        
+        // Fetch real AI insights
+        fetchAIInsights();
+      }, 2000);
       
       return () => clearTimeout(timer);
     } else {
       setSuggestions([]);
       setDuplicateWarning(null);
+      setAiInsights(null);
     }
-  }, [formData?.title, formData?.description]);
+  }, [formData?.title, formData?.description, formData?.category]);
 
   const getConfidenceColor = (confidence) => {
-    if (confidence >= 90) return 'text-success';
-    if (confidence >= 75) return 'text-warning';
+    if (confidence >= 90) return 'text-green-600';
+    if (confidence >= 75) return 'text-green-500';
     return 'text-text-secondary';
   };
 
   const getConfidenceBg = (confidence) => {
-    if (confidence >= 90) return 'bg-success/10 border-success/20';
-    if (confidence >= 75) return 'bg-warning/10 border-warning/20';
+    if (confidence >= 90) return 'bg-green-50 border-green-200';
+    if (confidence >= 75) return 'bg-green-50 border-green-200';
     return 'bg-muted border-border';
   };
+
+  const sendChatMessage = async (messageText) => {
+    const textToSend = messageText || chatInput;
+    if (!textToSend.trim() || isSendingMessage) return;
+
+    const userMessage = { role: 'user', content: textToSend };
+    setChatMessages(prev => [...prev, userMessage]);
+    setChatInput('');
+    setIsSendingMessage(true);
+
+    try {
+      // Handle simple conversational queries without RAG
+      const lowerText = textToSend.toLowerCase().trim();
+      let aiResponse = null;
+
+      // Greetings
+      if (['hi', 'hello', 'hey', 'greetings'].some(greeting => lowerText === greeting)) {
+        aiResponse = "Hello! 👋 I'm here to help you understand civic issues and how cities handle them. You can ask me about departments, resolution times, common issues, or anything related to civic services. What would you like to know?";
+      }
+      // Thanks
+      else if (['thanks', 'thank you', 'thx'].some(thanks => lowerText.includes(thanks))) {
+        aiResponse = "You're welcome! Feel free to ask if you have any other questions about civic issues. I'm here to help! 😊";
+      }
+      // Help
+      else if (lowerText.includes('help') && lowerText.length < 20) {
+        aiResponse = "I can help you with:\n\n• Understanding how cities handle different types of civic issues\n• Typical resolution times for complaints\n• Which departments manage specific problems\n• Common patterns in civic service delivery\n\nJust ask me a specific question about any civic issue!";
+      }
+      // Who are you
+      else if (lowerText.includes('who are you') || lowerText.includes('what are you')) {
+        aiResponse = "I'm Civic AI Assistant, trained on thousands of civic service cases from urban areas worldwide. I use this knowledge to help you understand how cities typically handle civic issues, which departments are responsible, and what to expect for resolution times. Ask me anything about civic services!";
+      }
+
+      // If we have a conversational response, use it
+      if (aiResponse) {
+        const aiMessage = { role: 'assistant', content: aiResponse };
+        setChatMessages(prev => [...prev, aiMessage]);
+        setIsSendingMessage(false);
+        return;
+      }
+
+      // Otherwise, use RAG for civic-specific questions
+      const response = await fetch('http://localhost:8000/api/civic-ai/chat/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: textToSend }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const aiMessage = { role: 'assistant', content: data.answer };
+        setChatMessages(prev => [...prev, aiMessage]);
+      } else {
+        const errorMessage = { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' };
+        setChatMessages(prev => [...prev, errorMessage]);
+      }
+    } catch (error) {
+      console.error('Chat error:', error);
+      const errorMessage = { role: 'assistant', content: 'Connection error. Please make sure the backend is running.' };
+      setChatMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsSendingMessage(false);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendChatMessage();
+    }
+  };
+
+  // Initialize chat with welcome message when opened
+  React.useEffect(() => {
+    if (showChat && chatMessages.length === 0) {
+      const welcomeMessage = {
+        role: 'assistant',
+        content: `👋 Hello! I'm your Civic AI Assistant, trained on thousands of civic service cases from around the world.
+
+I can help you understand:
+• How cities typically handle different types of issues
+• Expected resolution times for civic complaints
+• Which departments manage specific problems
+• Best practices for reporting civic issues
+
+Feel free to ask me anything about civic services!`
+      };
+      setChatMessages([welcomeMessage]);
+    }
+  }, [showChat]);
 
   if (!formData?.title && !formData?.description) {
     return (
@@ -185,7 +409,7 @@ const AIAssistant = ({ formData, onSuggestionApply }) => {
           {suggestions?.map((suggestion) => (
             <div
               key={suggestion?.id}
-              className={`p-4 rounded-lg border ${getConfidenceBg(suggestion?.confidence)}`}
+              className={`p-4 rounded-lg border ${getConfidenceBg(suggestion?.confidence)} transition-all hover:shadow-md`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -197,24 +421,78 @@ const AIAssistant = ({ formData, onSuggestionApply }) => {
                       {suggestion?.confidence}% confident
                     </span>
                   </div>
-                  <p className="text-sm text-text-secondary mb-3">
+                  <p className="text-sm text-text-secondary mb-2">
                     {suggestion?.description}
                   </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={suggestion?.action}
-                    iconName="Check"
-                    iconPosition="left"
-                  >
-                    Apply Suggestion
-                  </Button>
+                  
+                  {/* Show benefit */}
+                  {suggestion?.benefit && (
+                    <div className="mb-3 flex items-start gap-2 text-xs text-green-700 bg-green-50/50 p-2 rounded">
+                      <Icon name="CheckCircle2" size={14} className="mt-0.5 flex-shrink-0" />
+                      <span>{suggestion?.benefit}</span>
+                    </div>
+                  )}
+                  
+                  {/* Show enhanced title preview for title suggestions */}
+                  {suggestion?.type === 'enhancement' && suggestion?.enhancedTitle && (
+                    <div className="mb-3 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-md border border-green-200">
+                      <p className="text-xs text-gray-600 mb-1">Preview:</p>
+                      <p className="text-sm font-semibold text-green-900">
+                        {suggestion?.enhancedTitle}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {(suggestion?.type === 'category' || suggestion?.type === 'priority' || suggestion?.type === 'enhancement') && (
+                    <button
+                      onClick={() => setConfirmModal(suggestion)}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white text-sm font-medium rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-sm hover:shadow-md transform hover:scale-105"
+                    >
+                      <Icon name="Sparkles" size={14} />
+                      Apply Suggestion
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
           ))}
         </div>
       )}
+
+      {/* AI Civic Insights - Compact */}
+      {aiInsights ? (
+        <div className="mt-6 p-4 bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 rounded-lg border border-green-200 shadow-sm">
+          <div className="flex items-start gap-2 mb-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-green-600 to-emerald-600 rounded-full flex items-center justify-center shadow-sm flex-shrink-0">
+              <Icon name="Bot" size={16} className="text-white" />
+            </div>
+            <div className="flex-1">
+              <p className="text-xs font-semibold text-green-900 mb-2">Quick Insights</p>
+              <ul className="space-y-1">
+                {aiInsights.points?.map((point, idx) => (
+                  <li key={idx} className="text-xs text-gray-700 flex items-start gap-1.5">
+                    <span className="text-green-600 mt-0.5">•</span>
+                    <span>{point}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+          <div className="text-xs text-gray-500 text-center">
+            💡 Based on similar civic cases
+          </div>
+        </div>
+      ) : formData?.description && formData.description.length > 20 ? (
+        <div className="mt-6 p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg border border-green-200">
+          <div className="flex items-center gap-2 text-xs text-green-600">
+            <div className="animate-spin">
+              <Icon name="Loader2" size={14} />
+            </div>
+            <span>Analyzing your issue...</span>
+          </div>
+        </div>
+      ) : null}
+
       {/* AI Tips */}
       <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/10">
         <h4 className="text-sm font-medium text-foreground mb-2 flex items-center">
@@ -225,9 +503,87 @@ const AIAssistant = ({ formData, onSuggestionApply }) => {
           <li>• Include specific keywords for better categorization</li>
           <li>• Mention safety concerns to get appropriate priority</li>
           <li>• Add location details for more accurate duplicate detection</li>
-          <li>• Use clear, descriptive language for better AI analysis</li>
+          <li>• AI learns from thousands of civic cases worldwide</li>
         </ul>
       </div>
+
+      {/* Confirmation Modal */}
+      {confirmModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <Icon name="Sparkles" size={20} className="text-green-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                  Apply Suggestion?
+                </h3>
+                <p className="text-sm text-gray-600">
+                  {confirmModal.title}
+                </p>
+              </div>
+            </div>
+
+            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-700 mb-2">
+                {confirmModal.description}
+              </p>
+              {confirmModal.benefit && (
+                <div className="flex items-start gap-2 text-xs text-green-700 bg-green-50 p-2 rounded mt-2">
+                  <Icon name="CheckCircle2" size={14} className="mt-0.5 flex-shrink-0" />
+                  <span><strong>Benefit:</strong> {confirmModal.benefit}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Show preview for title enhancement */}
+            {confirmModal.type === 'enhancement' && confirmModal.enhancedTitle && (
+              <div className="mb-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                <p className="text-xs text-gray-600 mb-1">Will be applied:</p>
+                <p className="text-sm font-semibold text-green-900">
+                  {confirmModal.enhancedTitle}
+                </p>
+              </div>
+            )}
+            {confirmModal.type === 'category' && (
+              <div className="mb-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                <p className="text-xs text-gray-600 mb-1">Will set category to:</p>
+                <p className="text-sm font-semibold text-green-900 capitalize">
+                  {confirmModal.value}
+                </p>
+              </div>
+            )}
+            {confirmModal.type === 'priority' && (
+              <div className="mb-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                <p className="text-xs text-gray-600 mb-1">Will set priority to:</p>
+                <p className="text-sm font-semibold text-green-900 capitalize">
+                  {confirmModal.value}
+                </p>
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmModal(null)}
+                className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 font-medium text-sm rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  onSuggestionApply(confirmModal.field, confirmModal.value);
+                  setConfirmModal(null);
+                }}
+                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium text-sm rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all shadow-sm flex items-center justify-center gap-2"
+              >
+                <Icon name="Check" size={16} />
+                Apply Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

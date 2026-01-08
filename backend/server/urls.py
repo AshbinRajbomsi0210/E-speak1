@@ -25,7 +25,9 @@ urlpatterns = [
     path('api/issues/', include('issues.urls')),
     path('api/accounts/', include('accounts.urls')),
     path('api/community/', include('community.urls')),
-
+    path('api/civic-ai/', include('civic_ai.urls')),
+    path('api/contact/', include('contact.urls')),
+    path('api/newsletter/', include('newsletter.urls')),
 ]
 
 if settings.DEBUG:

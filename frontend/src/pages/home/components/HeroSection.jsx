@@ -6,7 +6,7 @@ import communityImg from '../../../assets/community.png';
 
 const HeroSection = () => {
   return (
-    <section className="relative bg-gradient-to-br from-primary/5 via-accent/5 to-primary/10 py-16 lg:py-24">
+    <section className="relative bg-gradient-to-br from-primary/5 via-accent/5 to-primary/10 py-12 lg:py-16">
       <div className="max-w-7xl mx-auto px-4 lg:px-6">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Content */}

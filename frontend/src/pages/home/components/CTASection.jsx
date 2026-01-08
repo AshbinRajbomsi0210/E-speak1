@@ -38,7 +38,7 @@ const CTASection = () => {
   ];
 
   return (
-    <section className="py-16 lg:py-24 bg-gradient-to-br from-primary/10 via-accent/5 to-background">
+    <section className="py-12 lg:py-16 bg-gradient-to-br from-primary/10 via-accent/5 to-background">
       <div className="max-w-6xl mx-auto px-4 lg:px-6">
         <div className="bg-card rounded-2xl border border-border civic-shadow-card overflow-hidden">
           <div className="grid lg:grid-cols-2 gap-8 items-center">

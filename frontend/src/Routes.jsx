@@ -22,6 +22,7 @@ import Authority from "./pages/authority";
 import ConnectionTest from "./pages/connection-test";
 import TestUserSync from "./pages/test-sync";
 import ForgotPassword from "./pages/forgot-password";
+import CivicAI from "./pages/civic-ai";
 import {
   SignedIn,
   SignedOut,
@@ -81,6 +82,7 @@ const Routes = () => {
               <Route path="/profile" element={<Profile />} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/authority" element={<Authority />} />
+              <Route path="/civic-ai" element={<ProtectedRoute><CivicAI /></ProtectedRoute>} />
               <Route path="/issues" element={<Issues />} />
               <Route path="/connection-test" element={<ConnectionTest />} />
               <Route path="/test-sync" element={<TestUserSync />} />

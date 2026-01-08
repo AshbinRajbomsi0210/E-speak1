@@ -296,3 +296,33 @@ def search_similar_issues(request):
         "count": similar_issues.count(),
         "data": serializer.data
     })
+
+@api_view(['PATCH'])
+def update_issue_status(request, pk):
+    """
+    Update only the status of an issue (for authority dashboard)
+    """
+    try:
+        issue = Issue.objects.get(pk=pk)
+        new_status = request.data.get('status')
+        
+        if not new_status:
+            return Response(
+                {"success": False, "message": "Status is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Update status
+        issue.status = new_status
+        issue.save()
+        
+        return Response({
+            "success": True,
+            "message": "Issue status updated successfully",
+            "data": IssueSerializer(issue, context={'request': request}).data
+        })
+    except Issue.DoesNotExist:
+        return Response(
+            {"success": False, "message": "Issue not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )

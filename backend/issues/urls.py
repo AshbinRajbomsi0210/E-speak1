@@ -9,7 +9,8 @@ from .views import (
     upvote_issue,
     remove_upvote,
     check_upvote,
-    search_similar_issues
+    search_similar_issues,
+    update_issue_status
 )
 
 urlpatterns = [
@@ -17,6 +18,7 @@ urlpatterns = [
     path('list/', list_issues, name='issues-list'),
     path('<int:pk>/', get_issue, name='issues-get'),
     path('<int:pk>/update/', update_issue, name='issues-update'),
+    path('<int:pk>/update-status/', update_issue_status, name='issues-update-status'),
     path('<int:pk>/delete/', delete_issue, name='issues-delete'),
     path('<int:pk>/upvote/', upvote_issue, name='issues-upvote'),
     path('<int:pk>/remove-upvote/', remove_upvote, name='issues-remove-upvote'),

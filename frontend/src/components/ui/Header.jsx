@@ -39,7 +39,7 @@ const Header = () => {
             <div className="flex items-center justify-center w-8 h-8 bg-primary rounded-lg">
               <Icon name="MessageSquare" size={20} color="white" />
             </div>
-            <span className="text-xl font-semibold text-foreground">E-speak</span>
+            <span className="text-xl font-bold text-foreground">E-speak</span>
           </Link>
 
           {/* Desktop Navigation */}

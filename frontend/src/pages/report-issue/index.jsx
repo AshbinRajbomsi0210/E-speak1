@@ -55,6 +55,7 @@ const ReportIssue = () => {
   };
 
   const handleAISuggestion = (field, value) => {
+    console.log('AI Suggestion Applied:', { field, value });
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -179,6 +180,7 @@ const ReportIssue = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
+      
       <main className="pt-16">
         <div className="bg-gradient-to-r from-primary/10 to-accent/10 border-b border-border">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">

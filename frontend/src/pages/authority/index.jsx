@@ -20,7 +20,8 @@ const AuthorityDashboard = () => {
     totalIssues: 0,
     pending: 0,
     inProgress: 0,
-    resolved: 0
+    resolved: 0,
+    rejected: 0
   });
 
   // Fetch user role from Django backend
@@ -91,12 +92,14 @@ const AuthorityDashboard = () => {
           const pending = transformedIssues.filter(i => i.status === 'pending').length;
           const inProgress = transformedIssues.filter(i => i.status === 'in-progress').length;
           const resolved = transformedIssues.filter(i => i.status === 'resolved').length;
+          const rejected = transformedIssues.filter(i => i.status === 'rejected').length;
           
           setStats({
             totalIssues: transformedIssues.length,
             pending,
             inProgress,
-            resolved
+            resolved,
+            rejected
           });
         }
       } catch (error) {
@@ -176,7 +179,8 @@ const AuthorityDashboard = () => {
           totalIssues: updatedIssues.length,
           pending: updatedIssues.filter(i => i.status === 'pending').length,
           inProgress: updatedIssues.filter(i => i.status === 'in-progress').length,
-          resolved: updatedIssues.filter(i => i.status === 'resolved').length
+          resolved: updatedIssues.filter(i => i.status === 'resolved').length,
+          rejected: updatedIssues.filter(i => i.status === 'rejected').length
         });
         
         if (selectedIssue?.dbId === issueId) {
@@ -215,8 +219,8 @@ const AuthorityDashboard = () => {
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
           <div className="bg-card border border-border rounded-lg p-6 hover:shadow-lg civic-transition">
             <div className="flex items-center justify-between">
               <div>
@@ -261,6 +265,18 @@ const AuthorityDashboard = () => {
               </div>
               <div className="w-12 h-12 bg-success/10 rounded-full flex items-center justify-center">
                 <Icon name="CheckCircle" size={24} className="text-success" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-card border border-border rounded-lg p-6 hover:shadow-lg civic-transition">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-text-secondary mb-1">Rejected</p>
+                <p className="text-3xl font-bold text-error">{stats.rejected}</p>
+              </div>
+              <div className="w-12 h-12 bg-error/10 rounded-full flex items-center justify-center">
+                <Icon name="XCircle" size={24} className="text-error" />
               </div>
             </div>
           </div>
@@ -381,17 +397,64 @@ const AuthorityDashboard = () => {
 
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium text-foreground mb-2 block">Status</label>
-                    <select
-                      value={selectedIssue.status}
-                      onChange={(e) => handleStatusChange(selectedIssue.dbId, e.target.value)}
-                      className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-                    >
-                      <option value="pending">Pending</option>
-                      <option value="in-progress">In Progress</option>
-                      <option value="resolved">Resolved</option>
-                      <option value="rejected">Rejected</option>
-                    </select>
+                    <label className="text-sm font-medium text-foreground mb-3 block">Update Status</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => handleStatusChange(selectedIssue.dbId, 'pending')}
+                        className={`px-4 py-3 rounded-lg border-2 font-medium text-sm civic-transition ${
+                          selectedIssue.status === 'pending'
+                            ? 'bg-warning/10 border-warning text-warning'
+                            : 'bg-background border-border text-text-secondary hover:border-warning/50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-center space-x-2">
+                          <Icon name="Clock" size={16} />
+                          <span>Pending</span>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={() => handleStatusChange(selectedIssue.dbId, 'in-progress')}
+                        className={`px-4 py-3 rounded-lg border-2 font-medium text-sm civic-transition ${
+                          selectedIssue.status === 'in-progress'
+                            ? 'bg-primary/10 border-primary text-primary'
+                            : 'bg-background border-border text-text-secondary hover:border-primary/50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-center space-x-2">
+                          <Icon name="Activity" size={16} />
+                          <span>In Progress</span>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={() => handleStatusChange(selectedIssue.dbId, 'resolved')}
+                        className={`px-4 py-3 rounded-lg border-2 font-medium text-sm civic-transition ${
+                          selectedIssue.status === 'resolved'
+                            ? 'bg-success/10 border-success text-success'
+                            : 'bg-background border-border text-text-secondary hover:border-success/50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-center space-x-2">
+                          <Icon name="CheckCircle" size={16} />
+                          <span>Resolved</span>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={() => handleStatusChange(selectedIssue.dbId, 'rejected')}
+                        className={`px-4 py-3 rounded-lg border-2 font-medium text-sm civic-transition ${
+                          selectedIssue.status === 'rejected'
+                            ? 'bg-error/10 border-error text-error'
+                            : 'bg-background border-border text-text-secondary hover:border-error/50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-center space-x-2">
+                          <Icon name="XCircle" size={16} />
+                          <span>Rejected</span>
+                        </div>
+                      </button>
+                    </div>
                   </div>
 
                   <div>

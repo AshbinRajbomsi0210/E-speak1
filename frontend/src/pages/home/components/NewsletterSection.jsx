@@ -6,22 +6,42 @@ const NewsletterSection = () => {
   const [email, setEmail] = useState('');
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
-  const handleSubscribe = (e) => {
+  const handleSubscribe = async (e) => {
     e.preventDefault();
     if (!email) return;
 
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubscribed(true);
+    setErrorMessage('');
+    
+    try {
+      const response = await fetch('http://localhost:8000/api/newsletter/subscribe/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setIsSubscribed(true);
+        setEmail('');
+      } else {
+        setErrorMessage(data.message || 'Failed to subscribe. Please try again.');
+      }
+    } catch (error) {
+      console.error('Newsletter subscription error:', error);
+      setErrorMessage('Failed to subscribe. Please check your connection and try again.');
+    } finally {
       setIsLoading(false);
-      setEmail('');
-    }, 1500);
+    }
   };
 
   return (
-    <section className="py-16 lg:py-20 bg-gradient-to-r from-primary to-accent">
+    <section className="py-12 lg:py-16 bg-gradient-to-r from-primary to-accent">
       <div className="max-w-4xl mx-auto px-4 lg:px-6 text-center">
         <div className="flex items-center justify-center mb-6">
           <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
@@ -55,6 +75,11 @@ const NewsletterSection = () => {
                 {isLoading ? 'Subscribing...' : 'Subscribe'}
               </button>
             </div>
+            {errorMessage && (
+              <p className="text-sm text-red-200 mt-3 bg-red-500/20 rounded-lg px-4 py-2">
+                {errorMessage}
+              </p>
+            )}
             <p className="text-xs text-white/70 mt-3">
               We respect your privacy. Unsubscribe at any time.
             </p>
@@ -66,7 +91,7 @@ const NewsletterSection = () => {
               <span className="font-semibold text-lg">Successfully Subscribed!</span>
             </div>
             <p className="text-white/90 text-sm">
-              Check your inbox for a confirmation email. Welcome to the community!
+              You're now subscribed to our newsletter. You'll receive weekly updates about community issues and events!
             </p>
           </div>
         )}

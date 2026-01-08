@@ -42,6 +42,9 @@ INSTALLED_APPS = [
     'issues',
     'accounts',
     'community',
+    'civic_ai',
+    'contact',
+    'newsletter',
 ]
 
 MIDDLEWARE = [
@@ -178,3 +181,21 @@ SIMPLE_JWT = {
 #     'accounts.backends.EmailBackend',
 #     'django.contrib.auth.backends.ModelBackend',  # fallback
 # ]
+
+# AI Chatbot Settings
+SOCRATA_APP_TOKEN = os.environ.get('SOCRATA_APP_TOKEN', None)  # Optional, for higher rate limits
+EMBEDDING_MODEL = 'all-MiniLM-L6-v2'  # Sentence transformer model
+VECTOR_STORE_PATH = os.path.join(BASE_DIR, 'civic_ai', 'vector_store')  # Path to save/load vector store
+
+# Email Configuration - Gmail SMTP for real email sending
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'rbashbin1@gmail.com'  # Replace with your Gmail address
+EMAIL_HOST_PASSWORD = 'auem gbmh hopo wugh'  # Gmail App Password
+DEFAULT_FROM_EMAIL = 'E-speak <rbashbin1@gmail.com>'  # Replace with your Gmail address
+
+# Note: For better security, use environment variables in production:
+# EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+# EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')

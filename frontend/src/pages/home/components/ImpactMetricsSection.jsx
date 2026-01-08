@@ -107,7 +107,7 @@ const ImpactMetricsSection = () => {
   };
 
   return (
-    <section className="py-16 lg:py-24 bg-surface">
+    <section className="py-12 lg:py-16 bg-surface">
       <div className="max-w-7xl mx-auto px-4 lg:px-6">
         <div className="text-center mb-16">
           <h2 className="text-3xl lg:text-4xl font-bold text-foreground mb-4">
