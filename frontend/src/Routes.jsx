@@ -21,6 +21,7 @@ import Admin from "./pages/admin";
 import Authority from "./pages/authority";
 import ConnectionTest from "./pages/connection-test";
 import TestUserSync from "./pages/test-sync";
+import ForgotPassword from "./pages/forgot-password";
 import {
   SignedIn,
   SignedOut,
@@ -72,6 +73,7 @@ const Routes = () => {
               <Route path="/role-selection" element={<RoleSelection />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
 
               <Route path="/report-issue" element={<ProtectedRoute>
                 <ReportIssue />

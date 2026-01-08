@@ -9,11 +9,33 @@ const ImpactMetricsSection = () => {
     responses: 0
   });
 
-  const finalCounts = {
-    issues: 2847,
-    resolved: 1923,
-    users: 15642,
-    responses: 3456
+  const [finalCounts, setFinalCounts] = useState({
+    issues: 0,
+    resolved: 0,
+    users: 0,
+    responses: 0
+  });
+
+  useEffect(() => {
+    fetchMetrics();
+  }, []);
+
+  const fetchMetrics = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/issues/stats/');
+      const data = await response.json();
+      
+      if (data.success) {
+        setFinalCounts({
+          issues: data.data.total || 0,
+          resolved: data.data.by_status['Resolved'] || 0,
+          users: 156,
+          responses: data.data.by_status['In Progress'] || 0
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching metrics:', error);
+    }
   };
 
   const metrics = [
@@ -52,7 +74,9 @@ const ImpactMetricsSection = () => {
   ];
 
   useEffect(() => {
-    const duration = 2000; // 2 seconds
+    if (finalCounts.issues === 0) return;
+
+    const duration = 2000;
     const steps = 60;
     const stepDuration = duration / steps;
 
@@ -76,7 +100,7 @@ const ImpactMetricsSection = () => {
     return () => {
       intervals?.forEach(interval => clearInterval(interval));
     };
-  }, []);
+  }, [finalCounts]);
 
   const formatNumber = (num) => {
     return num?.toLocaleString();

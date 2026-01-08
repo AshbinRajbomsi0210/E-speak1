@@ -189,7 +189,7 @@ const CreatePollModal = ({ isOpen, onClose, onCreatePoll }) => {
               <select
                 value={pollData?.category}
                 onChange={(e) => handleInputChange('category', e?.target?.value)}
-                className="w-full px-3 py-2 border border-border rounded-lg bg-input text-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full h-11 px-4 py-2 border-2 border-slate-300 rounded-lg bg-white text-slate-900 font-medium shadow-sm hover:border-slate-400 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/20 transition-all duration-200 cursor-pointer"
               >
                 <option value="general">General</option>
                 <option value="infrastructure">Infrastructure</option>

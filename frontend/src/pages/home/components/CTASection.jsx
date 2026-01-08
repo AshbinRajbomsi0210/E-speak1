@@ -1,8 +1,35 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Icon from '../../../components/AppIcon';
 
 const CTASection = () => {
+  const [stats, setStats] = useState({
+    resolved: 0,
+    users: 0,
+    satisfaction: 98
+  });
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/issues/stats/');
+      const data = await response.json();
+      
+      if (data.success) {
+        setStats({
+          resolved: data.data.by_status['Resolved'] || 0,
+          users: 156, // Placeholder - will need users API
+          satisfaction: 98
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+    }
+  };
+
   const features = [
     { icon: 'Shield', text: 'Safe & Secure' },
     { icon: 'Users', text: 'Community Driven' },
@@ -65,7 +92,7 @@ const CTASection = () => {
                 <div className="space-y-4">
                   <div className="bg-white rounded-lg p-4 shadow-lg transform hover:scale-105 civic-transition">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-2xl font-bold text-foreground">1,247</span>
+                      <span className="text-2xl font-bold text-foreground">{stats.resolved}</span>
                       <div className="w-10 h-10 bg-success/10 rounded-lg flex items-center justify-center">
                         <Icon name="CheckCircle" size={20} className="text-success" />
                       </div>
@@ -75,7 +102,7 @@ const CTASection = () => {
 
                   <div className="bg-white rounded-lg p-4 shadow-lg transform hover:scale-105 civic-transition ml-8">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-2xl font-bold text-foreground">5,892</span>
+                      <span className="text-2xl font-bold text-foreground">{stats.users}</span>
                       <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
                         <Icon name="Users" size={20} className="text-primary" />
                       </div>
@@ -85,7 +112,7 @@ const CTASection = () => {
 
                   <div className="bg-white rounded-lg p-4 shadow-lg transform hover:scale-105 civic-transition">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-2xl font-bold text-foreground">98%</span>
+                      <span className="text-2xl font-bold text-foreground">{stats.satisfaction}%</span>
                       <div className="w-10 h-10 bg-accent/10 rounded-lg flex items-center justify-center">
                         <Icon name="TrendingUp" size={20} className="text-accent" />
                       </div>
