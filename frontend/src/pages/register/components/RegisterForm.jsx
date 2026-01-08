@@ -442,7 +442,7 @@ const RegisterForm = () => {
 
         {/* Password Input with toggle & strength */}
         <div className="space-y-2">
-          <label className={`text-sm font-medium ${errors?.password ? 'text-destructive' : 'text-foreground'}`}>
+          <label className={`text-sm font-semibold ${errors?.password ? 'text-destructive' : 'text-slate-700'}`}>
             Password <span className="text-destructive">*</span>
           </label>
           <div className="relative">
@@ -452,16 +452,16 @@ const RegisterForm = () => {
               value={formData?.password}
               onChange={handleInputChange}
               placeholder="Create a strong password"
-              className={`flex h-10 w-full rounded-md border px-3 py-2 text-sm bg-background ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${errors?.password ? 'border-destructive focus-visible:ring-destructive' : 'border-input'}`}
+              className={`flex h-11 w-full rounded-lg border-2 px-4 py-2 text-sm font-medium shadow-sm ring-offset-background transition-all duration-200 pr-12 ${errors?.password ? 'border-destructive bg-white text-slate-900 placeholder:text-slate-400 hover:border-destructive focus:border-destructive focus:outline-none focus:ring-4 focus:ring-destructive/20' : 'border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 hover:border-slate-400 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/20'}`}
               required
             />
             <button
               type="button"
               onClick={() => setShowPassword(p => !p)}
-              className="absolute inset-y-0 right-2 flex items-center text-text-secondary hover:text-foreground"
+              className="absolute inset-y-0 right-3 flex items-center text-slate-500 hover:text-slate-700 transition-colors"
               tabIndex={-1}
             >
-              <Icon name={showPassword ? 'EyeOff' : 'Eye'} size={18} />
+              <Icon name={showPassword ? 'EyeOff' : 'Eye'} size={20} />
             </button>
           </div>
           {errors?.password && <p className="text-sm text-destructive">{errors?.password}</p>}
@@ -485,7 +485,7 @@ const RegisterForm = () => {
 
         {/* Confirm Password Input */}
         <div className="space-y-2">
-          <label className={`text-sm font-medium ${errors?.confirmPassword ? 'text-destructive' : 'text-foreground'}`}>
+          <label className={`text-sm font-semibold ${errors?.confirmPassword ? 'text-destructive' : 'text-slate-700'}`}>
             Confirm Password <span className="text-destructive">*</span>
           </label>
           <div className="relative">
@@ -495,16 +495,16 @@ const RegisterForm = () => {
               value={formData?.confirmPassword}
               onChange={handleInputChange}
               placeholder="Re-enter your password"
-              className={`flex h-10 w-full rounded-md border px-3 py-2 text-sm bg-background ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${errors?.confirmPassword ? 'border-destructive focus-visible:ring-destructive' : 'border-input'}`}
+              className={`flex h-11 w-full rounded-lg border-2 px-4 py-2 text-sm font-medium shadow-sm ring-offset-background transition-all duration-200 pr-12 ${errors?.confirmPassword ? 'border-destructive bg-white text-slate-900 placeholder:text-slate-400 hover:border-destructive focus:border-destructive focus:outline-none focus:ring-4 focus:ring-destructive/20' : 'border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 hover:border-slate-400 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/20'}`}
               required
             />
             <button
               type="button"
               onClick={() => setShowConfirmPassword(p => !p)}
-              className="absolute inset-y-0 right-2 flex items-center text-text-secondary hover:text-foreground"
+              className="absolute inset-y-0 right-3 flex items-center text-slate-500 hover:text-slate-700 transition-colors"
               tabIndex={-1}
             >
-              <Icon name={showConfirmPassword ? 'EyeOff' : 'Eye'} size={18} />
+              <Icon name={showConfirmPassword ? 'EyeOff' : 'Eye'} size={20} />
             </button>
           </div>
           {errors?.confirmPassword && <p className="text-sm text-destructive">{errors?.confirmPassword}</p>}

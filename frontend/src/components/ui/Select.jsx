@@ -104,8 +104,8 @@ const Select = React.forwardRef(({
                 <label
                     htmlFor={selectId}
                     className={cn(
-                        "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 mb-2 block",
-                        error ? "text-destructive" : "text-foreground"
+                        "text-sm font-semibold leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 mb-2 block",
+                        error ? "text-destructive" : "text-slate-700"
                     )}
                 >
                     {label}
@@ -118,9 +118,10 @@ const Select = React.forwardRef(({
                     id={selectId}
                     type="button"
                     className={cn(
-                        "flex h-10 w-full items-center justify-between rounded-md border border-input bg-white text-black px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
-                        error && "border-destructive focus:ring-destructive",
-                        !hasValue && "text-muted-foreground"
+                        "flex h-11 w-full items-center justify-between rounded-lg border-2 border-slate-300 bg-white text-slate-900 px-4 py-2 text-sm font-medium shadow-sm ring-offset-background placeholder:text-slate-400 hover:border-slate-400 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-slate-50 transition-all duration-200",
+                        error && "border-destructive focus:border-destructive focus:ring-destructive/20",
+                        !hasValue && "text-slate-400",
+                        isOpen && "ring-4 ring-primary/20 border-primary"
                     )}
                     onClick={handleToggle}
                     disabled={disabled}

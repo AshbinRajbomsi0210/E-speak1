@@ -74,53 +74,68 @@ const Community = () => {
   const mockLeaders = [
   {
     id: 1,
-    name: "Sarah Johnson",
-    avatar: "https://ui-avatars.com/api/?name=Sarah+Johnson&background=0D8ABC&color=fff",
-    avatarAlt: "Sarah Johnson avatar",
+    name: "Bikash Shrestha",
+    avatar: "https://ui-avatars.com/api/?name=Bikash+Shrestha&background=0D8ABC&color=fff",
+    avatarAlt: "Bikash Shrestha avatar",
     points: 2847,
     level: "Civic Champion",
     topBadge: "Top Reporter",
-    recentActivity: "Reported 3 issues this week"
+    recentActivity: "Reported 3 issues this week",
+    issuesReported: 45,
+    issuesResolved: 32,
+    pollsVoted: 67
   },
   {
     id: 2,
-    name: "Michael Chen",
-    avatar: "https://ui-avatars.com/api/?name=Michael+Chen&background=6366F1&color=fff",
-    avatarAlt: "Michael Chen avatar",
+    name: "Anjali Tamang",
+    avatar: "https://ui-avatars.com/api/?name=Anjali+Tamang&background=6366F1&color=fff",
+    avatarAlt: "Anjali Tamang avatar",
     points: 2156,
     level: "Community Helper",
     topBadge: "Problem Solver",
-    recentActivity: "Voted on 5 polls today"
+    recentActivity: "Voted on 5 polls today",
+    issuesReported: 38,
+    issuesResolved: 28,
+    pollsVoted: 54
   },
   {
     id: 3,
-    name: "Emily Rodriguez",
-    avatar: "https://ui-avatars.com/api/?name=Emily+Rodriguez&background=EC4899&color=fff",
-    avatarAlt: "Emily Rodriguez avatar",
+    name: "Rajesh Gurung",
+    avatar: "https://ui-avatars.com/api/?name=Rajesh+Gurung&background=EC4899&color=fff",
+    avatarAlt: "Rajesh Gurung avatar",
     points: 1923,
     level: "Active Citizen",
     topBadge: "Discussion Leader",
-    recentActivity: "Started 2 discussions"
+    recentActivity: "Started 2 discussions",
+    issuesReported: 29,
+    issuesResolved: 21,
+    pollsVoted: 48
   },
   {
     id: 4,
-    name: "David Thompson",
-    avatar: "https://ui-avatars.com/api/?name=David+Thompson&background=10B981&color=fff",
-    avatarAlt: "David Thompson avatar",
+    name: "Sita Rai",
+    avatar: "https://ui-avatars.com/api/?name=Sita+Rai&background=10B981&color=fff",
+    avatarAlt: "Sita Rai avatar",
     points: 1678,
     level: "Engaged Voter",
     topBadge: "Active Voter",
-    recentActivity: "Commented on 8 issues"
+    recentActivity: "Commented on 8 issues",
+    issuesReported: 25,
+    issuesResolved: 18,
+    pollsVoted: 42
   },
   {
     id: 5,
-    name: "Lisa Park",
-    avatar: "https://ui-avatars.com/api/?name=Lisa+Park&background=F59E0B&color=fff",
-    avatarAlt: "Lisa Park avatar",
+    name: "Pramod Thapa",
+    avatar: "https://ui-avatars.com/api/?name=Pramod+Thapa&background=F59E0B&color=fff",
+    avatarAlt: "Pramod Thapa avatar",
     points: 1445,
     level: "Rising Star",
     topBadge: "Community Helper",
-    recentActivity: "Resolved 2 issues"
+    recentActivity: "Resolved 2 issues",
+    issuesReported: 22,
+    issuesResolved: 16,
+    pollsVoted: 35
   }];
 
 
@@ -165,9 +180,9 @@ const Community = () => {
     id: 4,
     type: "comment_added",
     user: {
-      name: "Jennifer Martinez",
-      avatar: "https://ui-avatars.com/api/?name=Jennifer+Martinez&background=EC4899&color=fff",
-      avatarAlt: "Jennifer Martinez avatar"
+      name: "Sunita Karki",
+      avatar: "https://ui-avatars.com/api/?name=Sunita+Karki&background=EC4899&color=fff",
+      avatarAlt: "Sunita Karki avatar"
     },
     description: "Added a detailed comment about traffic safety concerns in the school zone",
     relatedItem: "School Zone Safety Discussion",
@@ -177,9 +192,9 @@ const Community = () => {
     id: 5,
     type: "vote_cast",
     user: {
-      name: "Robert Kim",
-      avatar: "https://ui-avatars.com/api/?name=Robert+Kim&background=F59E0B&color=fff",
-      avatarAlt: "Robert Kim avatar"
+      name: "Ramesh Maharjan",
+      avatar: "https://ui-avatars.com/api/?name=Ramesh+Maharjan&background=F59E0B&color=fff",
+      avatarAlt: "Ramesh Maharjan avatar"
     },
     description: "Voted in favor of extended library hours proposal",
     relatedItem: "Library Hours Extension Poll",
@@ -193,9 +208,9 @@ const Community = () => {
     title: "Traffic Safety Improvements Needed on School Routes",
     preview: "Parents are concerned about speeding vehicles during school hours. We need better crosswalks and speed bumps...",
     author: {
-      name: "Parent Council",
-      avatar: "https://ui-avatars.com/api/?name=Parent+Council&background=EF4444&color=fff",
-      avatarAlt: "Parent Council avatar"
+      name: "Sarita Poudel",
+      avatar: "https://ui-avatars.com/api/?name=Sarita+Poudel&background=EF4444&color=fff",
+      avatarAlt: "Sarita Poudel avatar"
     },
     category: "safety",
     repliesCount: 23,
@@ -207,9 +222,9 @@ const Community = () => {
     {
       id: 1,
       author: {
-        name: "Traffic Engineer",
-        avatar: "https://ui-avatars.com/api/?name=Traffic+Engineer&background=14B8A6&color=fff",
-        avatarAlt: "Traffic Engineer avatar"
+        name: "Dipak Basnet",
+        avatar: "https://ui-avatars.com/api/?name=Dipak+Basnet&background=14B8A6&color=fff",
+        avatarAlt: "Dipak Basnet avatar"
       },
       content: "We're currently conducting a traffic study on these routes. Results should be available next month.",
       upvotes: 12,
@@ -222,9 +237,9 @@ const Community = () => {
     title: "Community Center Renovation Plans",
     preview: "The community center needs updates to better serve our growing population. What improvements should we prioritize?",
     author: {
-      name: "Facilities Manager",
-      avatar: "https://ui-avatars.com/api/?name=Facilities+Manager&background=6366F1&color=fff",
-      avatarAlt: "Facilities Manager avatar"
+      name: "Manoj Khadka",
+      avatar: "https://ui-avatars.com/api/?name=Manoj+Khadka&background=6366F1&color=fff",
+      avatarAlt: "Manoj Khadka avatar"
     },
     category: "infrastructure",
     repliesCount: 18,
@@ -237,12 +252,12 @@ const Community = () => {
 
 
   const mockUserStats = {
-    name: "Alex Johnson",
-    avatar: "https://ui-avatars.com/api/?name=Alex+Johnson&background=0D8ABC&color=fff&size=128",
-    avatarAlt: "Alex Johnson avatar",
+    name: "Krishna Adhikari",
+    avatar: "https://ui-avatars.com/api/?name=Krishna+Adhikari&background=0D8ABC&color=fff&size=128",
+    avatarAlt: "Krishna Adhikari avatar",
     level: 5,
     title: "Community Helper",
-    location: "Downtown District",
+    location: "Kathmandu Metropolitan",
     currentPoints: 1847,
     nextLevelPoints: 2500,
     totalReports: 23,
@@ -374,7 +389,7 @@ const Community = () => {
                     <select
                     value={filterStatus}
                     onChange={(e) => setFilterStatus(e?.target?.value)}
-                    className="px-3 py-1 text-sm border border-border rounded-lg bg-input text-foreground focus:ring-2 focus:ring-primary focus:border-transparent">
+                    className="h-9 px-3 py-1 text-sm border-2 border-slate-300 rounded-lg bg-white text-slate-900 font-medium shadow-sm hover:border-slate-400 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/20 transition-all duration-200 cursor-pointer">
 
                       <option value="all">All Status</option>
                       <option value="active">Active</option>
@@ -384,7 +399,7 @@ const Community = () => {
                     <select
                     value={filterCategory}
                     onChange={(e) => setFilterCategory(e?.target?.value)}
-                    className="px-3 py-1 text-sm border border-border rounded-lg bg-input text-foreground focus:ring-2 focus:ring-primary focus:border-transparent">
+                    className="h-9 px-3 py-1 text-sm border-2 border-slate-300 rounded-lg bg-white text-slate-900 font-medium shadow-sm hover:border-slate-400 focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/20 transition-all duration-200 cursor-pointer">
 
                       <option value="all">All Categories</option>
                       <option value="general">General</option>

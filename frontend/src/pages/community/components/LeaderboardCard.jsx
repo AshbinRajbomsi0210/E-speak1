@@ -32,12 +32,34 @@ const LeaderboardCard = ({ leaders }) => {
   return (
     <div className="civic-card p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-foreground">Community Leaders</h3>
+        <div>
+          <h3 className="text-lg font-semibold text-foreground">Community Leaders</h3>
+          <p className="text-xs text-text-secondary mt-1">
+            Ranked by total points: issues reported + resolved + polls voted
+          </p>
+        </div>
         <Button variant="ghost" size="sm">
           <Icon name="Trophy" size={16} />
           <span className="ml-1">View All</span>
         </Button>
       </div>
+      
+      {/* Leaderboard Criteria Info */}
+      <div className="mb-4 p-3 bg-primary/5 rounded-lg border border-primary/20">
+        <div className="flex items-start space-x-2">
+          <Icon name="Info" size={16} className="text-primary mt-0.5" />
+          <div className="text-xs text-text-secondary">
+            <p className="font-medium text-foreground mb-1">Points Calculation:</p>
+            <ul className="space-y-0.5">
+              <li>• Issue Reported: +50 points</li>
+              <li>• Issue Resolved: +100 points</li>
+              <li>• Poll Voted: +10 points</li>
+              <li>• Discussion Started: +25 points</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
       <div className="space-y-4">
         {leaders?.map((leader, index) => (
           <div key={leader?.id} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-muted/50 civic-transition">

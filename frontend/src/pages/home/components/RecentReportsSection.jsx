@@ -1,95 +1,75 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useUser } from '@clerk/clerk-react';
 import Image from '../../../components/AppImage';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
 
 const RecentReportsSection = () => {
-  const recentReports = [
-  {
-    id: 1,
-    title: "Pothole on Main Street",
-    description: "Large pothole causing traffic issues near the downtown intersection. Multiple vehicles have been damaged.",
-    image: "https://images.unsplash.com/photo-1728340964368-59c3192e44e6",
-    imageAlt: "Large pothole in asphalt road with damaged edges and debris",
-    category: "Infrastructure",
-    status: "Under Review",
-    location: "Main St & 5th Ave",
-    votes: 23,
-    comments: 8,
-    timeAgo: "2 hours ago",
-    priority: "high"
-  },
-  {
-    id: 2,
-    title: "Broken Streetlight",
-    description: "Street light has been out for over a week, creating safety concerns for pedestrians during evening hours.",
-    image: "https://images.unsplash.com/photo-1583207301768-beb6ff8cc347",
-    imageAlt: "Tall metal streetlight pole against evening sky with non-functioning bulb",
-    category: "Public Safety",
-    status: "In Discussion",
-    location: "Oak Avenue",
-    votes: 15,
-    comments: 12,
-    timeAgo: "5 hours ago",
-    priority: "medium"
-  },
-  {
-    id: 3,
-    title: "Illegal Dumping Site",
-    description: "Construction debris and household waste illegally dumped in the park area, affecting local wildlife and visitors.",
-    image: "https://images.unsplash.com/photo-1608267815410-398827cb4816",
-    imageAlt: "Pile of construction debris and waste materials dumped in green park area",
-    category: "Environment",
-    status: "Adopted",
-    location: "Riverside Park",
-    votes: 42,
-    comments: 18,
-    timeAgo: "1 day ago",
-    priority: "high"
-  },
-  {
-    id: 4,
-    title: "Damaged Playground Equipment",
-    description: "Swing set chains are broken and slide has sharp edges. Safety hazard for children using the playground.",
-    image: "https://images.unsplash.com/photo-1731817381879-fa6c7d2ffd49",
-    imageAlt: "Children\'s playground with damaged swing set and broken safety equipment",
-    category: "Public Safety",
-    status: "Resolved",
-    location: "Community Center",
-    votes: 31,
-    comments: 6,
-    timeAgo: "3 days ago",
-    priority: "high"
-  },
-  {
-    id: 5,
-    title: "Overgrown Vegetation",
-    description: "Bushes and trees blocking sidewalk visibility and pedestrian access on the residential street.",
-    image: "https://images.unsplash.com/photo-1727931742344-d85811b89f75",
-    imageAlt: "Overgrown green bushes and vegetation blocking concrete sidewalk path",
-    category: "Infrastructure",
-    status: "Under Review",
-    location: "Elm Street",
-    votes: 9,
-    comments: 3,
-    timeAgo: "1 week ago",
-    priority: "low"
-  },
-  {
-    id: 6,
-    title: "Water Main Leak",
-    description: "Continuous water leak from underground pipe causing flooding and potential foundation damage to nearby buildings.",
-    image: "https://images.unsplash.com/photo-1564326971730-8ca2d3ac7016",
-    imageAlt: "Water gushing from broken underground pipe creating puddle on street surface",
-    category: "Infrastructure",
-    status: "In Discussion",
-    location: "Cedar Boulevard",
-    votes: 67,
-    comments: 24,
-    timeAgo: "4 hours ago",
-    priority: "high"
-  }];
+  const navigate = useNavigate();
+  const { isSignedIn } = useUser();
+  const [recentReports, setRecentReports] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchRecentReports();
+  }, []);
+
+  const fetchRecentReports = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/issues/list/?sort=newest');
+      const data = await response.json();
+      
+      if (data.success) {
+        const transformedIssues = data.data.slice(0, 6).map(issue => ({
+          id: issue.id,
+          title: issue.title,
+          description: issue.description,
+          image: issue.photos?.length > 0 ? issue.photos[0].image : null,
+          imageAlt: issue.title,
+          category: issue.category,
+          status: issue.status,
+          location: issue.address,
+          votes: issue.upvotes || 0,
+          comments: 0,
+          timeAgo: getTimeAgo(new Date(issue.created_at)),
+          priority: issue.priority.toLowerCase()
+        }));
+        setRecentReports(transformedIssues);
+      }
+    } catch (error) {
+      console.error('Error fetching recent reports:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getTimeAgo = (date) => {
+    const seconds = Math.floor((new Date() - date) / 1000);
+    const intervals = {
+      year: 31536000,
+      month: 2592000,
+      week: 604800,
+      day: 86400,
+      hour: 3600,
+      minute: 60
+    };
+
+    for (const [unit, secondsInUnit] of Object.entries(intervals)) {
+      const interval = Math.floor(seconds / secondsInUnit);
+      if (interval >= 1) {
+        return `${interval} ${unit}${interval === 1 ? '' : 's'} ago`;
+      }
+    }
+    return 'just now';
+  };
+
+  const handleInteraction = (e) => {
+    if (!isSignedIn) {
+      e.preventDefault();
+      navigate('/login', { state: { from: '/' } });
+    }
+  };
 
 
   const getStatusColor = (status) => {
@@ -141,8 +121,28 @@ const RecentReportsSection = () => {
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-          {recentReports?.map((report) => {
+        {isLoading ? (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+            {[...Array(6)].map((_, index) => (
+              <div key={index} className="civic-card h-full animate-pulse">
+                <div className="h-48 bg-muted rounded-t-lg"></div>
+                <div className="p-6 space-y-3">
+                  <div className="h-4 bg-muted rounded w-1/4"></div>
+                  <div className="h-6 bg-muted rounded w-3/4"></div>
+                  <div className="h-4 bg-muted rounded w-full"></div>
+                  <div className="h-4 bg-muted rounded w-5/6"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : recentReports.length === 0 ? (
+          <div className="text-center py-12">
+            <Icon name="FileText" size={48} className="mx-auto text-text-secondary mb-4" />
+            <p className="text-lg text-text-secondary">No issues reported yet. Be the first to report!</p>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+            {recentReports?.map((report) => {
             const priorityInfo = getPriorityIcon(report?.priority);
 
             return (
@@ -192,14 +192,20 @@ const RecentReportsSection = () => {
                     {/* Engagement Stats */}
                     <div className="flex items-center justify-between pt-4 border-t border-border">
                       <div className="flex items-center space-x-4">
-                        <div className="flex items-center">
+                        <button 
+                          onClick={handleInteraction}
+                          className="flex items-center hover:text-primary civic-transition"
+                        >
                           <Icon name="ThumbsUp" size={14} className="text-text-secondary mr-1" />
                           <span className="text-sm text-text-secondary">{report?.votes}</span>
-                        </div>
-                        <div className="flex items-center">
+                        </button>
+                        <button 
+                          onClick={handleInteraction}
+                          className="flex items-center hover:text-primary civic-transition"
+                        >
                           <Icon name="MessageCircle" size={14} className="text-text-secondary mr-1" />
                           <span className="text-sm text-text-secondary">{report?.comments}</span>
-                        </div>
+                        </button>
                       </div>
                       <Icon name="ArrowRight" size={16} className="text-text-secondary" />
                     </div>
@@ -209,6 +215,7 @@ const RecentReportsSection = () => {
 
           })}
         </div>
+        )}
 
         {/* Call to Action */}
         <div className="mt-16 text-center">
