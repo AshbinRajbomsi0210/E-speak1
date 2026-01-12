@@ -16,6 +16,7 @@ class Issue(models.Model):
     longitude = models.FloatField(null=True, blank=True)
     status = models.CharField(max_length=50, default='Submitted')
     upvotes = models.IntegerField(default=0)
+    downvotes = models.IntegerField(default=0)
     created_at = models.DateTimeField(default=timezone.now)
 
     def save(self, *args, **kwargs):
@@ -32,9 +33,29 @@ class IssuePhoto(models.Model):
     image = models.ImageField(upload_to='issue_photos/')
 
 class IssueVote(models.Model):
+    VOTE_CHOICES = [
+        ('up', 'Upvote'),
+        ('down', 'Downvote'),
+    ]
     issue = models.ForeignKey(Issue, related_name='votes', on_delete=models.CASCADE)
     voter_email = models.EmailField()
+    vote_type = models.CharField(max_length=10, choices=VOTE_CHOICES, default='up')
     created_at = models.DateTimeField(default=timezone.now)
 
     class Meta:
         unique_together = ('issue', 'voter_email')
+
+class IssueComment(models.Model):
+    issue = models.ForeignKey(Issue, related_name='comments', on_delete=models.CASCADE)
+    user_email = models.EmailField()
+    user_name = models.CharField(max_length=150)
+    comment = models.TextField()
+    parent = models.ForeignKey('self', related_name='replies', on_delete=models.CASCADE, null=True, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Comment by {self.user_name} on {self.issue.report_id}"

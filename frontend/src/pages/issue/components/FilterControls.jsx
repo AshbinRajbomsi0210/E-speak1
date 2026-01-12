@@ -21,27 +21,28 @@ const FilterControls = ({
 }) => {
   const categoryOptions = [
     { value: 'all', label: 'All Categories' },
-    { value: 'Infrastructure', label: 'Infrastructure' },
-    { value: 'Public Safety', label: 'Public Safety' },
-    { value: 'Environment', label: 'Environment' },
-    { value: 'Transportation', label: 'Transportation' },
-    { value: 'Health', label: 'Health' },
-    { value: 'Education', label: 'Education' }
+    { value: 'infrastructure', label: 'Infrastructure' },
+    { value: 'public-safety', label: 'Public Safety' },
+    { value: 'environment', label: 'Environment' },
+    { value: 'transportation', label: 'Transportation' },
+    { value: 'health', label: 'Health' },
+    { value: 'education', label: 'Education' }
   ];
 
   const statusOptions = [
     { value: 'all', label: 'All Status' },
-    { value: 'In Discussion', label: 'In Discussion' },
+    { value: 'Submitted', label: 'Submitted' },
+    { value: 'In Progress', label: 'In Progress' },
     { value: 'Under Review', label: 'Under Review' },
-    { value: 'Adopted', label: 'Adopted' },
-    { value: 'Resolved', label: 'Resolved' }
+    { value: 'Resolved', label: 'Resolved' },
+    { value: 'Rejected', label: 'Rejected' }
   ];
 
   const priorityOptions = [
     { value: 'all', label: 'All Priorities' },
-    { value: 'High', label: 'High Priority' },
-    { value: 'Medium', label: 'Medium Priority' },
-    { value: 'Low', label: 'Low Priority' }
+    { value: 'high', label: 'High Priority' },
+    { value: 'medium', label: 'Medium Priority' },
+    { value: 'low', label: 'Low Priority' }
   ];
 
   const sortOptions = [

@@ -2,8 +2,8 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from django.db.models import Q
-from .serializers import IssueSerializer
-from .models import Issue, IssuePhoto, IssueVote
+from .serializers import IssueSerializer, IssueCommentSerializer
+from .models import Issue, IssuePhoto, IssueVote, IssueComment
 
 @api_view(['POST'])
 def create_issue(request):
@@ -159,11 +159,13 @@ def get_stats(request):
 @api_view(['POST'])
 def upvote_issue(request, pk):
     """
-    Upvote an issue - requires voter_email in request body
+    Upvote or downvote an issue - requires voter_email and vote_type in request body
+    vote_type: 'up' or 'down'
     """
     try:
         issue = Issue.objects.get(pk=pk)
         voter_email = request.data.get('voter_email')
+        vote_type = request.data.get('vote_type', 'up')  # default to upvote
         
         if not voter_email:
             return Response(
@@ -173,21 +175,74 @@ def upvote_issue(request, pk):
         
         # Check if user already voted
         existing_vote = IssueVote.objects.filter(issue=issue, voter_email=voter_email).first()
-        if existing_vote:
-            return Response(
-                {"success": False, "message": "You have already upvoted this issue"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
         
-        # Create vote and increment upvotes
-        IssueVote.objects.create(issue=issue, voter_email=voter_email)
-        issue.upvotes += 1
+        if existing_vote:
+            # If same vote type, remove it
+            if existing_vote.vote_type == vote_type:
+                if vote_type == 'up':
+                    issue.upvotes = max(0, issue.upvotes - 1)
+                else:
+                    issue.downvotes = max(0, issue.downvotes - 1)
+                existing_vote.delete()
+                issue.save()
+                
+                return Response({
+                    "success": True,
+                    "message": "Vote removed successfully",
+                    "data": {
+                        "upvotes": issue.upvotes,
+                        "downvotes": issue.downvotes,
+                        "voteScore": issue.upvotes - issue.downvotes,
+                        "userVote": None
+                    }
+                })
+            else:
+                # Switch vote type
+                if existing_vote.vote_type == 'up':
+                    issue.upvotes = max(0, issue.upvotes - 1)
+                    issue.downvotes += 1
+                else:
+                    issue.downvotes = max(0, issue.downvotes - 1)
+                    issue.upvotes += 1
+                
+                existing_vote.vote_type = vote_type
+                existing_vote.save()
+                issue.save()
+                
+                # Check vote threshold
+                check_vote_threshold(issue)
+                
+                return Response({
+                    "success": True,
+                    "message": "Vote updated successfully",
+                    "data": {
+                        "upvotes": issue.upvotes,
+                        "downvotes": issue.downvotes,
+                        "voteScore": issue.upvotes - issue.downvotes,
+                        "userVote": vote_type
+                    }
+                })
+        
+        # Create new vote
+        IssueVote.objects.create(issue=issue, voter_email=voter_email, vote_type=vote_type)
+        if vote_type == 'up':
+            issue.upvotes += 1
+        else:
+            issue.downvotes += 1
         issue.save()
+        
+        # Check vote threshold
+        check_vote_threshold(issue)
         
         return Response({
             "success": True,
-            "message": "Issue upvoted successfully",
-            "data": {"upvotes": issue.upvotes}
+            "message": "Vote recorded successfully",
+            "data": {
+                "upvotes": issue.upvotes,
+                "downvotes": issue.downvotes,
+                "voteScore": issue.upvotes - issue.downvotes,
+                "userVote": vote_type
+            }
         })
     except Issue.DoesNotExist:
         return Response(
@@ -195,50 +250,34 @@ def upvote_issue(request, pk):
             status=status.HTTP_404_NOT_FOUND
         )
 
-@api_view(['POST'])
-def remove_upvote(request, pk):
+def check_vote_threshold(issue):
     """
-    Remove upvote from an issue - requires voter_email in request body
+    Check if issue has reached vote threshold and alert authorities
     """
-    try:
-        issue = Issue.objects.get(pk=pk)
-        voter_email = request.data.get('voter_email')
-        
-        if not voter_email:
-            return Response(
-                {"success": False, "message": "voter_email is required"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Check if vote exists
-        vote = IssueVote.objects.filter(issue=issue, voter_email=voter_email).first()
-        if not vote:
-            return Response(
-                {"success": False, "message": "You haven't upvoted this issue"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # Remove vote and decrement upvotes
-        vote.delete()
-        issue.upvotes = max(0, issue.upvotes - 1)
+    VOTE_THRESHOLD = 10
+    
+    vote_score = issue.upvotes - issue.downvotes
+    
+    if vote_score >= VOTE_THRESHOLD and issue.status == 'Submitted':
+        # Update status to indicate high priority
+        issue.status = 'Under Review'
         issue.save()
         
-        return Response({
-            "success": True,
-            "message": "Upvote removed successfully",
-            "data": {"upvotes": issue.upvotes}
-        })
-    except Issue.DoesNotExist:
-        return Response(
-            {"success": False, "message": "Issue not found"},
-            status=status.HTTP_404_NOT_FOUND
-        )
+        # TODO: Send email notification to authorities
+        # send_mail(
+        #     subject=f'High Priority Issue: {issue.report_id}',
+        #     message=f'Issue "{issue.title}" has reached {vote_score} votes and requires attention.',
+        #     from_email=settings.EMAIL_HOST_USER,
+        #     recipient_list=['authority@example.com'],
+        # )
+        print(f"ALERT: Issue {issue.report_id} has reached vote threshold with {vote_score} votes!")
 
 @api_view(['GET'])
 def check_upvote(request, pk):
     """
-    Check if user has upvoted an issue
+    Check user's vote status on an issue
     Query param: voter_email
+    Returns: has_voted (boolean), vote_type ('up'/'down'/null)
     """
     try:
         issue = Issue.objects.get(pk=pk)
@@ -250,11 +289,14 @@ def check_upvote(request, pk):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        has_voted = IssueVote.objects.filter(issue=issue, voter_email=voter_email).exists()
+        vote = IssueVote.objects.filter(issue=issue, voter_email=voter_email).first()
         
         return Response({
             "success": True,
-            "data": {"has_voted": has_voted}
+            "data": {
+                "has_voted": vote is not None,
+                "vote_type": vote.vote_type if vote else None
+            }
         })
     except Issue.DoesNotExist:
         return Response(
@@ -324,5 +366,110 @@ def update_issue_status(request, pk):
     except Issue.DoesNotExist:
         return Response(
             {"success": False, "message": "Issue not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+# Comment endpoints
+@api_view(['GET'])
+def get_comments(request, pk):
+    """
+    Get all comments for an issue
+    """
+    try:
+        issue = Issue.objects.get(pk=pk)
+        comments = issue.comments.filter(parent=None)  # Only top-level comments
+        serializer = IssueCommentSerializer(comments, many=True)
+        
+        return Response({
+            "success": True,
+            "count": comments.count(),
+            "data": serializer.data
+        })
+    except Issue.DoesNotExist:
+        return Response(
+            {"success": False, "message": "Issue not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        return Response(
+            {"success": False, "message": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['POST'])
+def create_comment(request, pk):
+    """
+    Create a comment on an issue
+    Required: user_email, user_name, comment
+    Optional: parent (for replies)
+    """
+    try:
+        issue = Issue.objects.get(pk=pk)
+        
+        user_email = request.data.get('user_email')
+        user_name = request.data.get('user_name')
+        comment_text = request.data.get('comment')
+        parent_id = request.data.get('parent')
+        
+        if not all([user_email, user_name, comment_text]):
+            return Response(
+                {"success": False, "message": "user_email, user_name, and comment are required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Create comment directly using model
+        comment = IssueComment.objects.create(
+            issue=issue,
+            user_email=user_email,
+            user_name=user_name,
+            comment=comment_text,
+            parent_id=parent_id if parent_id else None
+        )
+        
+        # Serialize the response
+        serializer = IssueCommentSerializer(comment)
+        
+        return Response({
+            "success": True,
+            "message": "Comment posted successfully",
+            "data": serializer.data
+        }, status=status.HTTP_201_CREATED)
+        
+    except Issue.DoesNotExist:
+        return Response(
+            {"success": False, "message": "Issue not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        return Response(
+            {"success": False, "message": str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['DELETE'])
+def delete_comment(request, pk, comment_id):
+    """
+    Delete a comment (only by comment author)
+    """
+    try:
+        from .models import IssueComment
+        comment = IssueComment.objects.get(id=comment_id, issue_id=pk)
+        
+        user_email = request.data.get('user_email')
+        if not user_email or comment.user_email != user_email:
+            return Response(
+                {"success": False, "message": "You can only delete your own comments"},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        comment.delete()
+        return Response({
+            "success": True,
+            "message": "Comment deleted successfully"
+        })
+        
+    except IssueComment.DoesNotExist:
+        return Response(
+            {"success": False, "message": "Comment not found"},
             status=status.HTTP_404_NOT_FOUND
         )

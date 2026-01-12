@@ -16,6 +16,7 @@ import Register from "./pages/register";
 import RoleSelection from "./pages/role-selection";
 import ReportIssue from "./pages/report-issue";
 import Issues from "./pages/issue";
+import IssueDetail from "./pages/issue/detail";
 import Profile from "./pages/profile";
 import Admin from "./pages/admin";
 import Authority from "./pages/authority";
@@ -84,6 +85,7 @@ const Routes = () => {
               <Route path="/authority" element={<Authority />} />
               <Route path="/civic-ai" element={<ProtectedRoute><CivicAI /></ProtectedRoute>} />
               <Route path="/issues" element={<Issues />} />
+              <Route path="/issue/:id" element={<IssueDetail />} />
               <Route path="/connection-test" element={<ConnectionTest />} />
               <Route path="/test-sync" element={<TestUserSync />} />
               <Route path="*" element={<NotFound />} />

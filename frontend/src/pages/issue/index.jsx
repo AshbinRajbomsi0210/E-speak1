@@ -42,15 +42,23 @@ const Issues = () => {
       const voteChecks = issues.map(issue => 
         fetch(`http://127.0.0.1:8000/api/issues/${issue.id}/check-upvote/?voter_email=${encodeURIComponent(userEmail)}`)
           .then(res => res.json())
-          .then(data => ({ issueId: issue.id, hasVoted: data.data?.has_voted || false }))
-          .catch(() => ({ issueId: issue.id, hasVoted: false }))
+          .then(data => ({ 
+            issueId: issue.id, 
+            hasVoted: data.data?.has_voted || false,
+            voteType: data.data?.vote_type || null
+          }))
+          .catch(() => ({ issueId: issue.id, hasVoted: false, voteType: null }))
       );
 
       const results = await Promise.all(voteChecks);
       
       setIssues(prev => prev.map(issue => {
         const voteStatus = results.find(r => r.issueId === issue.id);
-        return voteStatus ? { ...issue, hasVoted: voteStatus.hasVoted } : issue;
+        return voteStatus ? { 
+          ...issue, 
+          hasVoted: voteStatus.hasVoted,
+          userVote: voteStatus.voteType
+        } : issue;
       }));
     } catch (error) {
       console.error('Error checking votes:', error);
@@ -84,7 +92,11 @@ const Issues = () => {
           latitude: issue.latitude,
           longitude: issue.longitude,
           images: issue.photos?.map(p => p.image) || [],
+          upvotes: issue.upvotes || 0,
+          downvotes: issue.downvotes || 0,
+          voteScore: (issue.upvotes || 0) - (issue.downvotes || 0),
           votes: issue.upvotes || 0,
+          commentCount: issue.commentCount || 0,
           comments: 0, // Will be implemented with comments system
           hasVoted: false, // Will check on mount
           timeAgo: getTimeAgo(new Date(issue.created_at)),
@@ -144,35 +156,40 @@ const Issues = () => {
   selectedPriority !== 'all' ||
   searchQuery?.length > 0;
 
-  const handleVote = async (issueId) => {
-    if (!authenticated) {
+  const handleVote = async (issueId, voteType) => {
+    if (!isSignedIn) {
       navigate('/login', { state: { from: '/issues' } });
       return;
     }
 
-    const issue = issues.find(i => i.id === issueId);
-    if (!issue) return;
+    const userEmail = user?.emailAddresses?.[0]?.emailAddress;
+    if (!userEmail) return;
 
     try {
-      const endpoint = issue.hasVoted 
-        ? `http://127.0.0.1:8000/api/issues/${issueId}/remove-upvote/`
-        : `http://127.0.0.1:8000/api/issues/${issueId}/upvote/`;
-
-      const response = await fetch(endpoint, {
+      const response = await fetch(`http://127.0.0.1:8000/api/issues/${issueId}/vote/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ voter_email: user?.email })
+        body: JSON.stringify({ 
+          voter_email: userEmail,
+          vote_type: voteType 
+        })
       });
 
       const data = await response.json();
       
       if (data.success) {
-        // Update local state
+        // Update local state with new vote data
         setIssues(prev => prev.map(item => 
           item.id === issueId
-            ? { ...item, votes: data.data.upvotes, hasVoted: !item.hasVoted }
+            ? { 
+                ...item, 
+                upvotes: data.data.upvotes,
+                downvotes: data.data.downvotes,
+                voteScore: data.data.voteScore,
+                userVote: data.data.userVote
+              }
             : item
         ));
       } else {
@@ -185,8 +202,40 @@ const Issues = () => {
   };
 
   const handleComment = (issueId) => {
-    console.log('Commenting on issue:', issueId);
-    // Will be implemented with comments system
+    navigate(`/issue/${issueId}#comments`);
+  };
+
+  const handleShare = async (issueId) => {
+    const issue = issues.find(i => i.id === issueId);
+    if (!issue) return;
+
+    const shareUrl = `${window.location.origin}/issue/${issueId}`;
+    const shareText = `Check out this civic issue: ${issue.title}`;
+
+    // Check if Web Share API is supported
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: issue.title,
+          text: shareText,
+          url: shareUrl
+        });
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          console.error('Error sharing:', error);
+        }
+      }
+    } else {
+      // Fallback: copy to clipboard
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        alert('Link copied to clipboard!');
+      } catch (error) {
+        console.error('Error copying to clipboard:', error);
+        // Final fallback: show the URL
+        prompt('Copy this link:', shareUrl);
+      }
+    }
   };
 
   const handleClearFilters = () => {
@@ -290,7 +339,8 @@ const Issues = () => {
                 key={issue?.id}
                 issue={issue}
                 onVote={handleVote}
-                onComment={handleComment} />
+                onComment={handleComment}
+                onShare={handleShare} />
 
               )}
               </div> :

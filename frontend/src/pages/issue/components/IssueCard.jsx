@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom';
 import Image from '../../../components/AppImage';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
+import VoteButtons from '../../../components/VoteButtons';
 
-const IssueCard = ({ issue, onVote, onComment }) => {
+const IssueCard = ({ issue, onVote, onComment, onShare }) => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'In Discussion':
@@ -118,31 +119,35 @@ const IssueCard = ({ issue, onVote, onComment }) => {
           </span>
         </div>
       </div>
-      {/* Actions */}
+      {/* Actions - Reddit Style */}
       <div className="flex items-center justify-between pt-4 border-t border-border">
-        <div className="flex items-center space-x-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onVote(issue?.id)}
-            className={`space-x-2 ${issue?.hasVoted ? 'text-primary' : 'text-text-secondary'}`}
-          >
-            <Icon 
-              name={issue?.hasVoted ? "ThumbsUp" : "ThumbsUp"} 
-              size={16} 
-            />
-            <span>{issue?.votes}</span>
-          </Button>
+        <div className="flex items-center space-x-2">
+          {/* Reddit-style voting */}
+          <VoteButtons
+            voteScore={issue?.voteScore || (issue?.upvotes - (issue?.downvotes || 0))}
+            userVote={issue?.userVote}
+            onVote={(voteType) => onVote(issue?.id, voteType)}
+            size="small"
+            className="bg-muted/50 border border-border"
+          />
 
-          <Button
-            variant="ghost"
-            size="sm"
+          {/* Comments */}
+          <button
             onClick={() => onComment(issue?.id)}
-            className="space-x-2 text-text-secondary"
+            className="flex items-center space-x-2 px-4 py-2 rounded-full bg-muted/50 border border-border hover:bg-muted text-text-secondary hover:text-foreground civic-transition"
           >
-            <Icon name="MessageCircle" size={16} />
-            <span>{issue?.comments}</span>
-          </Button>
+            <Icon name="MessageCircle" size={18} />
+            <span className="text-sm font-bold">{issue?.commentCount || issue?.comments || 0}</span>
+          </button>
+
+          {/* Share */}
+          <button
+            onClick={() => onShare && onShare(issue?.id)}
+            className="flex items-center space-x-2 px-4 py-2 rounded-full bg-muted/50 border border-border hover:bg-muted text-text-secondary hover:text-foreground civic-transition"
+          >
+            <Icon name="Share2" size={18} />
+            <span className="text-sm font-medium">Share</span>
+          </button>
         </div>
 
         <div className="flex items-center space-x-2">

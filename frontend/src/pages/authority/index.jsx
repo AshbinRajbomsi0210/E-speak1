@@ -21,7 +21,8 @@ const AuthorityDashboard = () => {
     pending: 0,
     inProgress: 0,
     resolved: 0,
-    rejected: 0
+    rejected: 0,
+    highPriority: 0
   });
 
   // Fetch user role from Django backend
@@ -99,7 +100,11 @@ const AuthorityDashboard = () => {
             pending,
             inProgress,
             resolved,
-            rejected
+            rejected,
+            highPriority: allIssues.filter(i => {
+              const voteScore = (i.upvotes || 0) - (i.downvotes || 0);
+              return voteScore >= 10 && i.status !== 'resolved' && i.status !== 'rejected';
+            }).length
           });
         }
       } catch (error) {
@@ -180,7 +185,11 @@ const AuthorityDashboard = () => {
           pending: updatedIssues.filter(i => i.status === 'pending').length,
           inProgress: updatedIssues.filter(i => i.status === 'in-progress').length,
           resolved: updatedIssues.filter(i => i.status === 'resolved').length,
-          rejected: updatedIssues.filter(i => i.status === 'rejected').length
+          rejected: updatedIssues.filter(i => i.status === 'rejected').length,
+          highPriority: updatedIssues.filter(i => {
+            const voteScore = (i.upvotes || 0) - (i.downvotes || 0);
+            return voteScore >= 10 && i.status !== 'resolved' && i.status !== 'rejected';
+          }).length
         });
         
         if (selectedIssue?.dbId === issueId) {
@@ -220,7 +229,7 @@ const AuthorityDashboard = () => {
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6 mb-8">
           <div className="bg-card border border-border rounded-lg p-6 hover:shadow-lg civic-transition">
             <div className="flex items-center justify-between">
               <div>
@@ -279,6 +288,22 @@ const AuthorityDashboard = () => {
                 <Icon name="XCircle" size={24} className="text-error" />
               </div>
             </div>
+          </div>
+
+          {/* High Priority Card based on votes */}
+          <div className="bg-gradient-to-br from-orange-500/10 to-red-500/10 border border-orange-500/30 rounded-lg p-6 hover:shadow-lg civic-transition">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-orange-600 dark:text-orange-400 mb-1">High Priority</p>
+                <p className="text-3xl font-bold text-orange-600 dark:text-orange-400">{stats.highPriority}</p>
+              </div>
+              <div className="w-12 h-12 bg-orange-500/20 rounded-full flex items-center justify-center">
+                <Icon name="TrendingUp" size={24} className="text-orange-600 dark:text-orange-400" />
+              </div>
+            </div>
+            <p className="text-xs text-orange-600/70 dark:text-orange-400/70 mt-2">
+              ≥10 net votes
+            </p>
           </div>
         </div>
 
@@ -371,9 +396,22 @@ const AuthorityDashboard = () => {
                       </span>
                       <span className="text-text-secondary capitalize">{issue.category}</span>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Icon name="ThumbsUp" size={14} className="text-text-secondary" />
-                      <span className="text-text-secondary">{issue.upvotes}</span>
+                    <div className="flex items-center space-x-3">
+                      {/* Vote Score */}
+                      <div className="flex items-center space-x-1">
+                        <Icon name="ArrowUp" size={14} className="text-orange-500" />
+                        <span className="text-xs font-medium text-orange-500">{issue.upvotes || 0}</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Icon name="ArrowDown" size={14} className="text-blue-500" />
+                        <span className="text-xs font-medium text-blue-500">{issue.downvotes || 0}</span>
+                      </div>
+                      <span className={`text-xs font-bold ${
+                        (issue.upvotes - (issue.downvotes || 0)) > 0 ? 'text-orange-500' : 
+                        (issue.upvotes - (issue.downvotes || 0)) < 0 ? 'text-blue-500' : 'text-text-secondary'
+                      }`}>
+                        {issue.upvotes - (issue.downvotes || 0) > 0 ? '+' : ''}{issue.upvotes - (issue.downvotes || 0)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -460,6 +498,45 @@ const AuthorityDashboard = () => {
                   <div>
                     <p className="text-sm font-medium text-foreground mb-2">Description</p>
                     <p className="text-sm text-text-secondary">{selectedIssue.description}</p>
+                  </div>
+
+                  {/* Voting Statistics */}
+                  <div className="bg-muted/30 rounded-lg p-4 border border-border">
+                    <p className="text-sm font-medium text-foreground mb-3">Community Engagement</p>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="text-center">
+                        <div className="flex items-center justify-center space-x-1 mb-1">
+                          <Icon name="ArrowUp" size={16} className="text-orange-500" />
+                          <span className="text-2xl font-bold text-orange-500">{selectedIssue.upvotes || 0}</span>
+                        </div>
+                        <p className="text-xs text-text-secondary">Upvotes</p>
+                      </div>
+                      <div className="text-center">
+                        <div className="flex items-center justify-center space-x-1 mb-1">
+                          <Icon name="ArrowDown" size={16} className="text-blue-500" />
+                          <span className="text-2xl font-bold text-blue-500">{selectedIssue.downvotes || 0}</span>
+                        </div>
+                        <p className="text-xs text-text-secondary">Downvotes</p>
+                      </div>
+                      <div className="text-center">
+                        <div className="mb-1">
+                          <span className={`text-2xl font-bold ${
+                            (selectedIssue.upvotes - (selectedIssue.downvotes || 0)) > 0 ? 'text-orange-500' : 
+                            (selectedIssue.upvotes - (selectedIssue.downvotes || 0)) < 0 ? 'text-blue-500' : 'text-text-secondary'
+                          }`}>
+                            {selectedIssue.upvotes - (selectedIssue.downvotes || 0) > 0 ? '+' : ''}
+                            {selectedIssue.upvotes - (selectedIssue.downvotes || 0)}
+                          </span>
+                        </div>
+                        <p className="text-xs text-text-secondary">Net Score</p>
+                      </div>
+                    </div>
+                    {selectedIssue.commentCount > 0 && (
+                      <div className="mt-3 pt-3 border-t border-border flex items-center justify-center space-x-2 text-text-secondary">
+                        <Icon name="MessageCircle" size={14} />
+                        <span className="text-sm">{selectedIssue.commentCount} {selectedIssue.commentCount === 1 ? 'comment' : 'comments'}</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">

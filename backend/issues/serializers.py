@@ -1,22 +1,48 @@
 from rest_framework import serializers
-from .models import Issue, IssuePhoto, IssueVote
+from .models import Issue, IssuePhoto, IssueVote, IssueComment
 
 class IssuePhotoSerializer(serializers.ModelSerializer):
     class Meta:
         model = IssuePhoto
         fields = ['id', 'image']
 
+class IssueCommentSerializer(serializers.ModelSerializer):
+    userName = serializers.CharField(source='user_name')
+    userEmail = serializers.EmailField(source='user_email')
+    createdAt = serializers.DateTimeField(source='created_at', read_only=True)
+    updatedAt = serializers.DateTimeField(source='updated_at', read_only=True)
+    replies = serializers.SerializerMethodField()
+
+    class Meta:
+        model = IssueComment
+        fields = ['id', 'issue', 'userName', 'userEmail', 'comment', 'parent', 'createdAt', 'updatedAt', 'replies']
+        read_only_fields = ('id', 'createdAt', 'updatedAt')
+
+    def get_replies(self, obj):
+        if obj.replies.exists():
+            return IssueCommentSerializer(obj.replies.all(), many=True).data
+        return []
+
 class IssueSerializer(serializers.ModelSerializer):
     reporterName = serializers.CharField(source='reporter_name', required=True)
     reporterEmail = serializers.EmailField(source='reporter_email', required=True)
     reporterPhone = serializers.CharField(source='reporter_phone', required=False, allow_blank=True)
     photos = IssuePhotoSerializer(many=True, read_only=True)
+    commentCount = serializers.SerializerMethodField()
+    voteScore = serializers.SerializerMethodField()
 
     class Meta:
         model = Issue
         fields = [
             'id', 'report_id', 'title', 'description', 'category', 'priority',
             'reporterName', 'reporterEmail', 'reporterPhone',
-            'address', 'latitude', 'longitude', 'status', 'upvotes', 'created_at', 'photos'
+            'address', 'latitude', 'longitude', 'status', 'upvotes', 'downvotes', 
+            'voteScore', 'commentCount', 'created_at', 'photos'
         ]
-        read_only_fields = ('id', 'report_id', 'status', 'upvotes', 'created_at')
+        read_only_fields = ('id', 'report_id', 'status', 'upvotes', 'downvotes', 'created_at', 'voteScore', 'commentCount')
+
+    def get_commentCount(self, obj):
+        return obj.comments.count()
+
+    def get_voteScore(self, obj):
+        return obj.upvotes - obj.downvotes

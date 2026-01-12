@@ -30,8 +30,10 @@ const RecentReportsSection = () => {
           category: issue.category,
           status: issue.status,
           location: issue.address,
-          votes: issue.upvotes || 0,
-          comments: 0,
+          upvotes: issue.upvotes || 0,
+          downvotes: issue.downvotes || 0,
+          votes: (issue.upvotes || 0) - (issue.downvotes || 0),
+          comments: issue.commentCount || 0,
           timeAgo: getTimeAgo(new Date(issue.created_at)),
           priority: issue.priority.toLowerCase()
         }));
@@ -146,7 +148,7 @@ const RecentReportsSection = () => {
             const priorityInfo = getPriorityIcon(report?.priority);
 
             return (
-              <Link key={report?.id} to={`/issues/${report?.id}`} className="block">
+              <Link key={report?.id} to={`/issue/${report?.id}`} className="block">
                 <div className="civic-card civic-card-hover h-full">
                   {/* Image */}
                   <div className="relative overflow-hidden rounded-t-lg h-48">
@@ -207,7 +209,10 @@ const RecentReportsSection = () => {
                           <span className="text-sm text-text-secondary">{report?.comments}</span>
                         </button>
                       </div>
-                      <Icon name="ArrowRight" size={16} className="text-text-secondary" />
+                      <span className="text-sm font-medium text-primary flex items-center space-x-1">
+                        <span>View Details</span>
+                        <Icon name="ArrowRight" size={14} />
+                      </span>
                     </div>
                   </div>
                 </div>

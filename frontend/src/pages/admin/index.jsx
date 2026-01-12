@@ -93,22 +93,36 @@ const AdminDashboard = () => {
         
         if (data.success) {
           // Transform backend data to match frontend format
-          const transformedIssues = data.data.map(issue => ({
-            id: issue.report_id,
-            dbId: issue.id,
-            title: issue.title,
-            description: issue.description,
-            category: issue.category?.toLowerCase() || 'other',
-            priority: issue.priority?.toLowerCase() || 'medium',
-            status: issue.status?.toLowerCase().replace(' ', '-') || 'pending',
-            reporterName: issue.reporterName || 'Anonymous',
-            reporterEmail: issue.reporterEmail || '',
-            reporterPhone: issue.reporterPhone || '',
-            location: { address: issue.address || 'No address provided' },
-            createdAt: issue.created_at,
-            upvotes: issue.upvotes || 0,
-            photos: issue.photos || []
-          }));
+          const transformedIssues = data.data.map(issue => {
+            // Map backend status to frontend format
+            const statusMap = {
+              'Submitted': 'pending',
+              'In Progress': 'in-progress',
+              'Under Review': 'under-review',
+              'Resolved': 'resolved',
+              'Rejected': 'rejected',
+              'Closed': 'rejected'
+            };
+            
+            const frontendStatus = statusMap[issue.status] || issue.status?.toLowerCase().replace(/\s+/g, '-') || 'pending';
+            
+            return {
+              id: issue.report_id,
+              dbId: issue.id,
+              title: issue.title,
+              description: issue.description,
+              category: issue.category?.toLowerCase() || 'other',
+              priority: issue.priority?.toLowerCase() || 'medium',
+              status: frontendStatus,
+              reporterName: issue.reporterName || 'Anonymous',
+              reporterEmail: issue.reporterEmail || '',
+              reporterPhone: issue.reporterPhone || '',
+              location: { address: issue.address || 'No address provided' },
+              createdAt: issue.created_at,
+              upvotes: issue.upvotes || 0,
+              photos: issue.photos || []
+            };
+          });
           setIssues(transformedIssues);
         }
       } catch (error) {
@@ -213,10 +227,13 @@ const AdminDashboard = () => {
     const statusMap = {
       'pending': 'Submitted',
       'in-progress': 'In Progress',
+      'under-review': 'Under Review',
       'resolved': 'Resolved',
-      'rejected': 'Closed'
+      'rejected': 'Rejected'
     };
     const backendStatus = statusMap[newStatus] || newStatus;
+
+    console.log('Updating issue:', issue.dbId, 'to status:', backendStatus);
 
     try {
       const response = await fetch(`http://127.0.0.1:8000/api/issues/${issue.dbId}/update/`, {
@@ -227,14 +244,14 @@ const AdminDashboard = () => {
         body: JSON.stringify({ status: backendStatus })
       });
 
+      const data = await response.json();
+      console.log('Update response:', data);
+
       if (response.ok) {
-        setIssues(prev => prev.map(item => 
-          item.id === issueId 
-            ? { ...item, status: newStatus, ...(newStatus === 'resolved' ? { resolvedAt: new Date().toISOString() } : {}) }
-            : item
-        ));
+        // Refresh the issues list to get updated data
+        fetchIssues();
         if (selectedIssue?.id === issueId) {
-          setSelectedIssue(prev => ({ ...prev, status: newStatus }));
+          setSelectedIssue(prev => ({ ...prev, status: backendStatus }));
         }
       } else {
         alert('Failed to update issue status');
