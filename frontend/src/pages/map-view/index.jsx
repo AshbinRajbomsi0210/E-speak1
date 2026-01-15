@@ -12,7 +12,9 @@ const MapView = () => {
   const [selectedIssue, setSelectedIssue] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [allIssues, setAllIssues] = useState([]); // Store all issues
+  const [allIssues, setAllIssues] = useState([]);
+  const [issues, setIssues] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [filters, setFilters] = useState({
     categories: [],
@@ -22,13 +24,25 @@ const MapView = () => {
     minVotes: 0,
     showResolved: true
   });
-  const [issues, setIssues] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch issues from backend
+  // Fetch issues ONCE on mount - NOT on filter change
   useEffect(() => {
     fetchIssues();
-  }, [filters]);
+  }, []); // Empty dependency array
+
+  // Apply filters whenever filters or allIssues change
+  useEffect(() => {
+    if (allIssues.length > 0) {
+      const filtered = applyClientSideFilters(allIssues);
+      setIssues(filtered);
+      
+      // If there's an active search, reapply filters to search results
+      if (searchQuery) {
+        const searchFiltered = applyClientSideFilters(searchResults);
+        setSearchResults(searchFiltered);
+      }
+    }
+  }, [filters, allIssues]);
 
   const fetchIssues = async () => {
     setIsLoading(true);
@@ -40,7 +54,6 @@ const MapView = () => {
         const transformedIssues = data.data
           .filter(issue => issue.latitude && issue.longitude)
           .map(issue => {
-            // Normalize status from backend to match frontend expectations
             const normalizeStatus = (status) => {
               const statusMap = {
                 'Submitted': 'Open',
@@ -56,7 +69,6 @@ const MapView = () => {
               return statusMap[status] || status || 'Open';
             };
 
-            // Normalize priority
             const normalizePriority = (priority) => {
               if (!priority) return 'medium';
               const p = priority.toLowerCase();
@@ -64,11 +76,27 @@ const MapView = () => {
               return p;
             };
 
+            const normalizeCategory = (category) => {
+              if (!category) return 'Other';
+              const categoryMap = {
+                'infrastructure': 'Infrastructure',
+                'public safety': 'Public Safety',
+                'public_safety': 'Public Safety',
+                'publicsafety': 'Public Safety',
+                'environment': 'Environment',
+                'transportation': 'Transportation',
+                'utilities': 'Utilities',
+                'utility': 'Utilities'
+              };
+              const normalized = categoryMap[category.toLowerCase().trim()];
+              return normalized || category.trim();
+            };
+
             return {
               id: issue.id,
               title: issue.title,
               description: issue.description,
-              category: issue.category || 'Other',
+              category: normalizeCategory(issue.category),
               status: normalizeStatus(issue.status),
               priority: normalizePriority(issue.priority),
               votes: issue.upvotes || 0,
@@ -84,8 +112,13 @@ const MapView = () => {
             };
           });
         
+        console.log('Loaded issues:', transformedIssues.length);
+        console.log('Sample categories:', transformedIssues.slice(0, 5).map(i => ({
+          title: i.title,
+          category: i.category
+        })));
+        
         setAllIssues(transformedIssues);
-        setIssues(applyClientSideFilters(transformedIssues));
       }
     } catch (error) {
       console.error('Error fetching issues:', error);
@@ -97,26 +130,80 @@ const MapView = () => {
   };
 
   const applyClientSideFilters = (issuesList) => {
-    return issuesList.filter((issue) => {
-      if (filters.categories.length > 0 && !filters.categories.includes(issue.category)) return false;
-      if (filters.statuses.length > 0 && !filters.statuses.includes(issue.status)) return false;
-      if (filters.priority && issue.priority !== filters.priority) return false;
-      if (issue.votes < filters.minVotes) return false;
-      if (!filters.showResolved && issue.status === 'Resolved') return false;
-
-      const issueDate = new Date(issue.reportedDate);
-      const now = new Date();
-      switch (filters.dateRange) {
-        case 'today': return issueDate.toDateString() === now.toDateString();
-        case 'week': return issueDate >= new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        case 'month': return issueDate >= new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        case 'quarter': return issueDate >= new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-        default: return true;
+    try {
+      console.log('=== START FILTERING ===');
+      console.log('Issues to filter:', issuesList?.length || 0);
+      
+      if (!issuesList || issuesList.length === 0) {
+        console.log('NO ISSUES!');
+        return [];
       }
+      
+      console.log('Selected categories:', filters?.categories);
+      console.log('All categories in data:', [...new Set(issuesList.map(i => i.category))]);
+      
+      const filtered = issuesList.filter((issue) => {
+        // Category filter
+        if (filters.categories && filters.categories.length > 0) {
+          const match = filters.categories.includes(issue.category);
+          if (match) {
+            console.log('✓ FOUND:', issue.title, 'is', issue.category);
+          }
+          return match;
+        }
+      
+      // Status filter
+      if (filters.statuses.length > 0 && !filters.statuses.includes(issue.status)) {
+        return false;
+      }
+      
+      // Priority filter
+      if (filters.priority && issue.priority !== filters.priority) {
+        return false;
+      }
+      
+      // Minimum votes filter
+      if (filters.minVotes > 0 && issue.votes < filters.minVotes) {
+        return false;
+      }
+      
+      // Show resolved filter
+      if (!filters.showResolved && issue.status === 'Resolved') {
+        return false;
+      }
+
+      // Date range filter
+      if (filters.dateRange && filters.dateRange !== 'all') {
+        const issueDate = new Date(issue.reportedDate);
+        const now = new Date();
+        
+        switch (filters.dateRange) {
+          case 'today':
+            return issueDate.toDateString() === now.toDateString();
+          case 'week':
+            return issueDate >= new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          case 'month':
+            return issueDate >= new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          case 'quarter':
+            return issueDate >= new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+          default:
+            return true;
+        }
+      }
+      
+      return true;
     });
+    
+    console.log('Filtered count:', filtered.length);
+    console.log('=== END FILTERING ===');
+    return filtered;
+    
+    } catch (error) {
+      console.error('FILTER ERROR:', error);
+      return issuesList;
+    }
   };
 
-  // Use search results if searching, otherwise use filtered issues
   const filteredIssues = searchQuery ? searchResults : issues;
 
   const handleLocationSearch = (location) => {
@@ -127,7 +214,6 @@ const MapView = () => {
     }
     
     setSearchQuery(location);
-    // Search issues by address/location
     const results = allIssues.filter((issue) =>
       issue.address?.toLowerCase().includes(location.toLowerCase())
     );
@@ -142,7 +228,6 @@ const MapView = () => {
     }
     
     setSearchQuery(query);
-    // Search issues by title, description, category
     const results = allIssues.filter((issue) =>
       issue.title?.toLowerCase().includes(query.toLowerCase()) ||
       issue.description?.toLowerCase().includes(query.toLowerCase()) ||
@@ -176,22 +261,19 @@ const MapView = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <div className="pt-16 h-screen flex">
-        {/* Main Map Area */}
         <div className="flex-1 flex flex-col">
-          {/* Top Controls Bar */}
           <div className="bg-surface border-b border-border p-4">
             <div className="flex items-center justify-between gap-4">
-              {/* Search Bar */}
               <div className="flex-1 max-w-md">
                 <SearchBar
                   onLocationSearch={handleLocationSearch}
                   onIssueSearch={handleIssueSearch}
                   onClearSearch={handleClearSearch}
                   allIssues={allIssues}
-                  hasActiveSearch={!!searchQuery} />
+                  hasActiveSearch={!!searchQuery}
+                />
               </div>
 
-              {/* Filter Toggle & Stats */}
               <div className="flex items-center space-x-3">
                 <div className="hidden md:flex items-center space-x-2 text-sm text-text-secondary">
                   <span>Showing {filteredIssues.length} {searchQuery ? 'results' : 'issues'}</span>
@@ -208,66 +290,67 @@ const MapView = () => {
                 <button
                   onClick={toggleFilterPanel}
                   className={`flex items-center space-x-2 px-4 py-2 rounded-lg border civic-transition ${
-                  isFilterPanelOpen ?
-                  'bg-primary text-primary-foreground border-primary' :
-                  'bg-surface text-foreground border-border hover:bg-muted'}`
-                  }>
-
+                    isFilterPanelOpen
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-surface text-foreground border-border hover:bg-muted'
+                  }`}
+                >
                   <Icon name="Filter" size={16} />
                   <span className="hidden sm:inline">Filters</span>
-                  {(filters?.categories?.length > 0 || filters?.statuses?.length > 0 || filters?.priority || filters?.dateRange !== 'all' || filters?.minVotes > 0) &&
-                  <div className="w-2 h-2 bg-error rounded-full" />
-                  }
+                  {(filters?.categories?.length > 0 || 
+                    filters?.statuses?.length > 0 || 
+                    filters?.priority || 
+                    filters?.dateRange !== 'all' || 
+                    filters?.minVotes > 0 ||
+                    !filters?.showResolved) && (
+                    <div className="w-2 h-2 bg-error rounded-full" />
+                  )}
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Map Container */}
           <div className="flex-1 relative">
             <MapContainer
               filteredIssues={filteredIssues}
               onIssueSelect={setSelectedIssue}
-              selectedIssue={selectedIssue} />
-
+              selectedIssue={selectedIssue}
+            />
             
-            {/* Map Legend */}
             <MapLegend />
             
-            {/* Map Stats - Desktop Only */}
             <div className="hidden xl:block absolute top-4 left-4 w-64">
               <MapStats
                 totalIssues={issues.length}
                 filteredIssues={filteredIssues}
-                filters={filters} />
-
+                filters={filters}
+              />
             </div>
           </div>
         </div>
 
-        {/* Filter Panel */}
         <div className={`${isFilterPanelOpen ? 'block' : 'hidden'} lg:block lg:w-80 flex-shrink-0`}>
           <FilterPanel
             isOpen={isFilterPanelOpen}
             onToggle={toggleFilterPanel}
             filters={filters}
             onFilterChange={setFilters}
-            onClearFilters={handleClearFilters} />
-
+            onClearFilters={handleClearFilters}
+          />
         </div>
       </div>
-      {/* Mobile Stats Modal */}
-      {isFilterPanelOpen &&
-      <div className="xl:hidden fixed bottom-20 left-4 right-4 z-40">
+
+      {isFilterPanelOpen && (
+        <div className="xl:hidden fixed bottom-20 left-4 right-4 z-40">
           <MapStats
-          totalIssues={issues.length}
-          filteredIssues={filteredIssues}
-          filters={filters} />
-
+            totalIssues={issues.length}
+            filteredIssues={filteredIssues}
+            filters={filters}
+          />
         </div>
-      }
-    </div>);
-
+      )}
+    </div>
+  );
 };
 
 export default MapView;
