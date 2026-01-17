@@ -3,8 +3,40 @@ import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import Icon from '../../../components/AppIcon';
 
+const countryCodes = [
+  { code: '+977', country: 'Nepal', flag: '🇳🇵' },
+  { code: '+91', country: 'India', flag: '🇮🇳' },
+  { code: '+1', country: 'USA/Canada', flag: '🇺🇸' },
+  { code: '+44', country: 'UK', flag: '🇬🇧' },
+  { code: '+61', country: 'Australia', flag: '🇦🇺' },
+  { code: '+86', country: 'China', flag: '🇨🇳' },
+  { code: '+81', country: 'Japan', flag: '🇯🇵' },
+  { code: '+82', country: 'South Korea', flag: '🇰🇷' },
+  { code: '+65', country: 'Singapore', flag: '🇸🇬' },
+  { code: '+60', country: 'Malaysia', flag: '🇲🇾' },
+  { code: '+971', country: 'UAE', flag: '🇦🇪' },
+  { code: '+966', country: 'Saudi Arabia', flag: '🇸🇦' },
+  { code: '+974', country: 'Qatar', flag: '🇶🇦' },
+  { code: '+49', country: 'Germany', flag: '🇩🇪' },
+  { code: '+33', country: 'France', flag: '🇫🇷' },
+  { code: '+39', country: 'Italy', flag: '🇮🇹' },
+  { code: '+34', country: 'Spain', flag: '🇪🇸' },
+  { code: '+55', country: 'Brazil', flag: '🇧🇷' },
+  { code: '+52', country: 'Mexico', flag: '🇲🇽' },
+  { code: '+27', country: 'South Africa', flag: '🇿🇦' },
+  { code: '+234', country: 'Nigeria', flag: '🇳🇬' },
+  { code: '+254', country: 'Kenya', flag: '🇰🇪' },
+  { code: '+63', country: 'Philippines', flag: '🇵🇭' },
+  { code: '+66', country: 'Thailand', flag: '🇹🇭' },
+  { code: '+84', country: 'Vietnam', flag: '🇻🇳' },
+  { code: '+880', country: 'Bangladesh', flag: '🇧🇩' },
+  { code: '+92', country: 'Pakistan', flag: '🇵🇰' },
+  { code: '+94', country: 'Sri Lanka', flag: '🇱🇰' },
+];
+
 const IssueForm = ({ formData, onFormChange }) => {
   const [charCount, setCharCount] = useState(formData?.description?.length || 0);
+  const [countryCode, setCountryCode] = useState('+977');
   const maxChars = 500;
 
   const categoryOptions = [
@@ -118,14 +150,37 @@ const IssueForm = ({ formData, onFormChange }) => {
           />
         </div>
 
-        <Input
-          label="Phone Number (Optional)"
-          type="tel"
-          placeholder="+1 (555) 123-4567"
-          value={formData?.reporterPhone || ''}
-          onChange={(e) => onFormChange('reporterPhone', e?.target?.value)}
-          description="In case we need to contact you directly"
-        />
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-text-primary">
+            Phone Number (Optional)
+          </label>
+          <div className="flex">
+            <select
+              value={countryCode}
+              onChange={(e) => setCountryCode(e.target.value)}
+              className="px-2 py-2.5 bg-gray-50 border border-r-0 border-gray-300 rounded-l-lg text-gray-700 text-sm font-medium focus:ring-2 focus:ring-primary focus:border-transparent cursor-pointer appearance-none"
+              style={{ minWidth: '110px' }}
+            >
+              {countryCodes.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.flag} {c.code}
+                </option>
+              ))}
+            </select>
+            <input
+              type="tel"
+              placeholder="Phone number"
+              value={formData?.reporterPhone || ''}
+              onChange={(e) => {
+                const value = e.target.value.replace(/\D/g, '').slice(0, 15);
+                onFormChange('reporterPhone', value);
+              }}
+              maxLength={15}
+              className="flex-1 px-4 py-2.5 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+            />
+          </div>
+          <p className="text-xs text-text-secondary">Select country code and enter phone number</p>
+        </div>
 
       </form>
     </div>

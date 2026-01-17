@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '@clerk/clerk-react';
+import { useAuth, useUser } from '@clerk/clerk-react';
 import Icon from '../../components/AppIcon';
 import Image from '../../components/AppImage';
 import Button from '../../components/ui/Button';
@@ -16,6 +16,7 @@ const API_BASE_URL = 'http://127.0.0.1:8000/api/community';
 
 const Community = () => {
   const { getToken } = useAuth();
+  const { user } = useUser();
   const [activeTab, setActiveTab] = useState('polls');
   const [isCreatePollOpen, setIsCreatePollOpen] = useState(false);
   const [polls, setPolls] = useState([]);
@@ -213,6 +214,137 @@ const Community = () => {
     return polls;
   };
 
+  // Delete poll handler
+  const handleDeletePoll = async (pollId) => {
+    try {
+      const token = await getToken();
+      const response = await fetch(`${API_BASE_URL}/polls/${pollId}/`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok || response.status === 204) {
+        setPolls(prevPolls => prevPolls.filter(poll => poll.id !== pollId));
+        // Refresh stats
+        fetchPolls();
+      } else {
+        // Only try to parse JSON if there's content
+        const text = await response.text();
+        const error = text ? JSON.parse(text) : {};
+        alert(error.error || 'Failed to delete poll');
+      }
+    } catch (error) {
+      console.error('Error deleting poll:', error);
+      alert('Failed to delete poll. Please try again.');
+    }
+  };
+
+  // Comment on poll handler
+  const handleCommentPoll = async (pollId, commentText) => {
+    try {
+      const token = await getToken();
+      const response = await fetch(`${API_BASE_URL}/polls/${pollId}/comment/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: commentText }),
+      });
+
+      if (response.ok) {
+        // Refresh polls to get updated comments
+        await fetchPolls();
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to add comment');
+      }
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      alert('Failed to add comment. Please try again.');
+    }
+  };
+
+  // Create discussion handler
+  const handleCreateDiscussion = async (discussionData) => {
+    try {
+      const token = await getToken();
+      const response = await fetch(`${API_BASE_URL}/discussions/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(discussionData),
+      });
+
+      if (response.ok) {
+        const createdDiscussion = await response.json();
+        setDiscussions(prev => [createdDiscussion, ...prev]);
+        return createdDiscussion;
+      } else {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create discussion');
+      }
+    } catch (error) {
+      console.error('Error creating discussion:', error);
+      throw error;
+    }
+  };
+
+  // Comment on discussion handler
+  const handleCommentDiscussion = async (discussionId, commentText) => {
+    try {
+      const token = await getToken();
+      const response = await fetch(`${API_BASE_URL}/discussions/${discussionId}/comment/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: commentText }),
+      });
+
+      if (response.ok) {
+        // Refresh discussions to get updated comments
+        await fetchDiscussions();
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to add comment');
+      }
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      alert('Failed to add comment. Please try again.');
+    }
+  };
+
+  // Delete discussion handler
+  const handleDeleteDiscussion = async (discussionId) => {
+    try {
+      const token = await getToken();
+      const response = await fetch(`${API_BASE_URL}/discussions/${discussionId}/`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok || response.status === 204) {
+        setDiscussions(prev => prev.filter(d => d.id !== discussionId));
+      } else {
+        // Only try to parse JSON if there's content
+        const text = await response.text();
+        const error = text ? JSON.parse(text) : {};
+        alert(error.error || 'Failed to delete discussion');
+      }
+    } catch (error) {
+      console.error('Error deleting discussion:', error);
+      alert('Failed to delete discussion. Please try again.');
+    }
+  };
+
   const tabItems = [
   { id: 'polls', label: 'Polls', icon: 'Vote' },
   { id: 'discussions', label: 'Discussions', icon: 'MessageSquare' },
@@ -330,7 +462,14 @@ const Community = () => {
                   <div className="space-y-4">
                     {getFilteredPolls()?.length > 0 ? (
                       getFilteredPolls()?.map((poll) =>
-                        <PollCard key={poll?.id} poll={poll} onVote={handleVote} />
+                        <PollCard 
+                          key={poll?.id} 
+                          poll={poll} 
+                          onVote={handleVote} 
+                          onDelete={handleDeletePoll}
+                          onComment={handleCommentPoll}
+                          currentUserId={user?.id}
+                        />
                       )
                     ) : (
                       <div className="civic-card p-8 text-center">
@@ -349,7 +488,12 @@ const Community = () => {
               }
 
               {activeTab === 'discussions' &&
-              <DiscussionThread discussions={discussions} />
+              <DiscussionThread 
+                discussions={discussions} 
+                onCreateDiscussion={handleCreateDiscussion}
+                onComment={handleCommentDiscussion}
+                onDelete={handleDeleteDiscussion}
+              />
               }
 
               {activeTab === 'leaderboard' &&

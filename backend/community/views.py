@@ -174,6 +174,17 @@ class DiscussionViewSet(viewsets.ModelViewSet):
             return CreateDiscussionSerializer
         return DiscussionSerializer
     
+    def create(self, request, *args, **kwargs):
+        """Override create to return full discussion data with author info"""
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        discussion = self.perform_create(serializer)
+        
+        # Return full discussion data using DiscussionSerializer
+        output_serializer = DiscussionSerializer(discussion, context={'request': request})
+        headers = self.get_success_headers(output_serializer.data)
+        return Response(output_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+    
     def perform_create(self, serializer):
         discussion = serializer.save(author=self.request.user)
         
@@ -189,6 +200,8 @@ class DiscussionViewSet(viewsets.ModelViewSet):
             related_item=discussion.title,
             points=30
         )
+        
+        return discussion
     
     @action(detail=True, methods=['post'])
     def comment(self, request, pk=None):

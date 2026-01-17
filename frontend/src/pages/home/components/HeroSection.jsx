@@ -16,7 +16,7 @@ const HeroSection = () => {
               <span className="text-primary block">Developing Communities</span>
             </h1>
             <p className="text-lg lg:text-xl text-text-secondary mb-8 max-w-2xl">
-              Report civic issues, engage with your community, and track government responses in real-time. 
+              Report civic issues, engage with your community, and track government responses. 
               Your voice matters in building a better tomorrow.
             </p>
             
