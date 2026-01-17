@@ -80,10 +80,10 @@ const PhotoUpload = ({ photos, onPhotosChange }) => {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {/* Upload Area */}
       <div
-        className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-all ${
+        className={`relative border-2 border-dashed rounded-lg p-4 text-center transition-all ${
           dragActive 
             ? 'border-primary bg-primary/5' 
             : 'border-border hover:border-primary/50'
@@ -102,12 +102,12 @@ const PhotoUpload = ({ photos, onPhotosChange }) => {
           className="hidden"
         />
         
-        <div className="space-y-2">
-          <Icon name="Upload" size={24} className="text-text-secondary mx-auto" />
-          <div>
+        <div className="flex items-center justify-center gap-3">
+          <Icon name="Upload" size={20} className="text-text-secondary" />
+          <div className="text-left">
             <p className="text-sm font-medium text-foreground">Add photos</p>
             <p className="text-xs text-text-secondary">
-              Drag here or <button onClick={openFileDialog} className="text-primary hover:underline">browse</button>
+              Drag here or <button onClick={openFileDialog} className="text-primary hover:underline">browse</button> • Max {maxFiles} photos
             </p>
           </div>
         </div>
@@ -116,13 +116,12 @@ const PhotoUpload = ({ photos, onPhotosChange }) => {
       {/* Photo Previews - Compact Grid */}
       {photos?.length > 0 && (
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-medium text-foreground">
-              {photos?.length} photo{photos?.length > 1 ? 's' : ''} ({photos?.length}/{maxFiles})
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-xs text-text-secondary">
+              {photos?.length}/{maxFiles} photos
             </p>
           </div>
-          
-          <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+          <div className="grid grid-cols-5 gap-1.5">
             {photos?.map((photo) => (
               <div key={photo?.id} className="relative group">
                 <div className="aspect-square rounded-lg overflow-hidden bg-muted">

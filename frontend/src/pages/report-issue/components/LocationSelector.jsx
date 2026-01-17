@@ -9,6 +9,7 @@ const LocationSelector = ({ location, onLocationChange }) => {
   const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
   const [mapCenter, setMapCenter] = useState({ lat: 27.7172, lng: 85.3240 }); 
   const [zoomLevel, setZoomLevel] = useState(12);
+  const [locationStatus, setLocationStatus] = useState(null); // 'loading', 'success', 'error'
 
   useEffect(() => {
     if (location?.coordinates) {
@@ -46,6 +47,7 @@ const LocationSelector = ({ location, onLocationChange }) => {
 
   const getCurrentLocation = () => {
     setIsLoadingLocation(true);
+    setLocationStatus('loading');
     
     if (navigator.geolocation) {
       navigator.geolocation?.getCurrentPosition(
@@ -65,33 +67,28 @@ const LocationSelector = ({ location, onLocationChange }) => {
           });
           
           setMapCenter(coords);
-          setZoomLevel(14);
+          setZoomLevel(16);
           setIsLoadingLocation(false);
+          setLocationStatus('success');
+          
+          // Clear success status after 3 seconds
+          setTimeout(() => setLocationStatus(null), 3000);
         },
         (error) => {
           console.error('Error getting location:', error);
-          let errorMessage = 'Unable to get your current location. ';
-          
-          if (error.code === error.PERMISSION_DENIED) {
-            errorMessage += 'Location permission was denied. Please enable location access in your browser settings.';
-          } else if (error.code === error.POSITION_UNAVAILABLE) {
-            errorMessage += 'Location information is unavailable.';
-          } else if (error.code === error.TIMEOUT) {
-            errorMessage += 'Location request timed out.';
-          }
-          
-          alert(errorMessage + ' Please enter the address manually.');
           setIsLoadingLocation(false);
+          setLocationStatus(null);
+          // Silently fail - user can click on map or enter address manually
         },
         {
           enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0
+          timeout: 15000,
+          maximumAge: 60000
         }
       );
     } else {
-      alert('Geolocation is not supported by this browser. Please enter the address manually.');
       setIsLoadingLocation(false);
+      setLocationStatus(null);
     }
   };
 
@@ -118,76 +115,116 @@ const LocationSelector = ({ location, onLocationChange }) => {
   };
 
   return (
-    <div className="space-y-3">
-      {/* Address Input & Current Location */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-foreground">Location</label>
-        <div className="flex gap-2">
-          <Input
-            type="text"
-            placeholder="Enter address or click map"
-            value={location?.address || ''}
-            onChange={handleAddressChange}
-            className="flex-1"
-          />
-          <Button
-            variant="outline"
-            onClick={getCurrentLocation}
-            disabled={isLoadingLocation}
-            size="sm"
-            className="px-3"
-            title="Use current location"
-          >
-            <Icon name="Navigation" size={16} />
-          </Button>
-        </div>
+    <div className="space-y-4">
+      {/* Location Header */}
+      <div className="flex items-center justify-between">
+        <label className="text-sm font-medium text-foreground flex items-center gap-2">
+          <Icon name="MapPin" size={16} className="text-primary" />
+          Location
+        </label>
+        <Button
+          variant={locationStatus === 'success' ? 'default' : 'outline'}
+          onClick={getCurrentLocation}
+          disabled={isLoadingLocation}
+          size="sm"
+          className={`gap-2 transition-all duration-300 ${locationStatus === 'success' ? 'bg-success hover:bg-success/90' : ''}`}
+        >
+          {isLoadingLocation ? (
+            <>
+              <Icon name="Loader" size={14} className="animate-spin" />
+              <span>Locating...</span>
+            </>
+          ) : locationStatus === 'success' ? (
+            <>
+              <Icon name="CheckCircle" size={14} />
+              <span>Located!</span>
+            </>
+          ) : (
+            <>
+              <Icon name="Navigation" size={14} />
+              <span>Use Current Location</span>
+            </>
+          )}
+        </Button>
       </div>
 
-      {/* Interactive Map - Compact */}
-      <div className="relative w-full h-64 rounded-lg overflow-hidden border border-border hover:border-primary/50 transition-colors" style={{ zIndex: 1 }}>
-        {isReverseGeocoding && (
-          <div className="absolute inset-0 bg-black/30 z-40 flex items-center justify-center">
-            <div className="bg-card px-3 py-2 rounded-lg flex items-center space-x-2 text-sm">
-              <Icon name="Loader" size={14} className="text-primary animate-spin" />
-              <span>Getting address...</span>
+      {/* Address Input */}
+      <div className="relative">
+        <Input
+          type="text"
+          placeholder="Enter address or click on the map below"
+          value={location?.address || ''}
+          onChange={handleAddressChange}
+          className="w-full pl-10"
+        />
+        <Icon name="Search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
+      </div>
+
+      {/* Interactive Map */}
+      <div className="relative w-full rounded-xl overflow-hidden border-2 border-border hover:border-primary/50 transition-all duration-300 shadow-sm" style={{ zIndex: 1 }}>
+        {/* Map Loading/Geocoding Overlay */}
+        {(isReverseGeocoding || isLoadingLocation) && (
+          <div className="absolute inset-0 bg-background/60 backdrop-blur-sm z-40 flex items-center justify-center">
+            <div className="bg-card px-4 py-3 rounded-xl flex items-center space-x-3 shadow-lg border border-border">
+              <Icon name="Loader" size={18} className="text-primary animate-spin" />
+              <span className="text-sm font-medium">
+                {isLoadingLocation ? 'Finding your location...' : 'Getting address...'}
+              </span>
             </div>
           </div>
         )}
         
-        <InteractiveMap
-          issues={[]}
-          center={mapCenter}
-          zoom={zoomLevel}
-          onClick={handleMapClick}
-          clickable={true}
-          height="100%"
-          showControls={false}
-        />
+        <div className="h-72">
+          <InteractiveMap
+            issues={[]}
+            center={mapCenter}
+            zoom={zoomLevel}
+            onClick={handleMapClick}
+            clickable={true}
+            height="100%"
+            showControls={false}
+          />
+        </div>
         
-        {/* Compact Map Controls */}
-        <div className="absolute top-2 right-2 flex gap-1 z-30">
+        {/* Map Controls */}
+        <div className="absolute top-3 right-3 flex flex-col gap-1 z-30">
           <button
             onClick={() => setZoomLevel(prev => Math.min(prev + 1, 18))}
-            className="w-8 h-8 bg-card border border-border rounded flex items-center justify-center hover:bg-muted text-sm"
+            className="w-9 h-9 bg-card/95 backdrop-blur border border-border rounded-lg flex items-center justify-center hover:bg-muted hover:border-primary/50 transition-all shadow-sm"
           >
-            <Icon name="Plus" size={14} />
+            <Icon name="Plus" size={16} />
           </button>
           <button
             onClick={() => setZoomLevel(prev => Math.max(prev - 1, 1))}
-            className="w-8 h-8 bg-card border border-border rounded flex items-center justify-center hover:bg-muted text-sm"
+            className="w-9 h-9 bg-card/95 backdrop-blur border border-border rounded-lg flex items-center justify-center hover:bg-muted hover:border-primary/50 transition-all shadow-sm"
           >
-            <Icon name="Minus" size={14} />
+            <Icon name="Minus" size={16} />
           </button>
         </div>
+
+        {/* Map Hint */}
+        {!location?.coordinates && (
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-30">
+            <div className="bg-card/95 backdrop-blur px-4 py-2 rounded-full text-xs text-text-secondary flex items-center gap-2 shadow-lg border border-border">
+              <Icon name="MousePointer" size={12} />
+              <span>Click on the map to select location</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Location Status */}
       {location?.coordinates && (
-        <div className="text-xs text-text-secondary p-2 bg-muted rounded border border-border/50">
-          <span className="flex items-center gap-2">
-            <Icon name="CheckCircle" size={12} className="text-success" />
-            {location?.address || 'Location set'}
-          </span>
+        <div className="flex items-start gap-3 p-3 bg-success/10 rounded-xl border border-success/20">
+          <div className="w-8 h-8 rounded-full bg-success/20 flex items-center justify-center flex-shrink-0">
+            <Icon name="CheckCircle" size={16} className="text-success" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-success">Location Selected</p>
+            <p className="text-xs text-text-secondary mt-0.5 truncate">
+              {location?.address || `${location?.coordinates?.lat?.toFixed(6)}, ${location?.coordinates?.lng?.toFixed(6)}`}
+            </p>
+          </div>
         </div>
       )}
     </div>

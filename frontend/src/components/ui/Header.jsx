@@ -132,11 +132,6 @@ const Header = () => {
                             <span>Create Account</span>
                           </Link>
                         )}
-                        <div className="border-t border-border my-1"></div>
-                        <Link to={`/login?role=${selectedRole}`} onClick={() => { setShowSigninMenu(false); setSelectedRole(null); }} className="flex w-full items-center space-x-2 px-3 py-2 rounded-md hover:bg-muted text-xs text-text-secondary civic-transition">
-                          <Icon name="Zap" size={14} />
-                          <span>Quick Demo Login</span>
-                        </Link>
                       </>
                     )}
                   </div>
@@ -246,11 +241,6 @@ const Header = () => {
                             <span className="font-medium">Create Account</span>
                           </Link>
                         )}
-                        <div className="border-t border-border my-2"></div>
-                        <Link to={`/login?role=${selectedRole}`} onClick={() => { setIsMobileMenuOpen(false); setSelectedRole(null); }} className="flex items-center space-x-3 px-3 py-3 rounded-lg text-text-secondary hover:text-foreground hover:bg-muted civic-transition w-full">
-                          <Icon name="Zap" size={20} />
-                          <span className="font-medium">Quick Demo Login</span>
-                        </Link>
                       </>
                     )}
                   </>

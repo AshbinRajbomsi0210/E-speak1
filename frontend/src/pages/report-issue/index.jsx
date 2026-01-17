@@ -33,6 +33,20 @@ const ReportIssue = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [generatedReportId, setGeneratedReportId] = useState('');
 
+  // Auto-fill user details when signed in
+  useEffect(() => {
+    if (isLoaded && isSignedIn && user) {
+      const fullName = user?.fullName || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || '';
+      const email = user?.primaryEmailAddress?.emailAddress || user?.emailAddresses?.[0]?.emailAddress || '';
+      
+      setFormData(prev => ({
+        ...prev,
+        reporterName: fullName,
+        reporterEmail: email
+      }));
+    }
+  }, [isLoaded, isSignedIn, user]);
+
   const handleFormChange = (field, value) => {
     setFormData(prev => ({
       ...prev,

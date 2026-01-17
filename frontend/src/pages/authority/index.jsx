@@ -101,7 +101,7 @@ const AuthorityDashboard = () => {
             inProgress,
             resolved,
             rejected,
-            highPriority: allIssues.filter(i => {
+            highPriority: transformedIssues.filter(i => {
               const voteScore = (i.upvotes || 0) - (i.downvotes || 0);
               return voteScore >= 10 && i.status !== 'resolved' && i.status !== 'rejected';
             }).length
@@ -114,10 +114,10 @@ const AuthorityDashboard = () => {
       }
     };
 
-    if (isSignedIn && userRole) {
+    if (isSignedIn) {
       fetchIssues();
     }
-  }, [isSignedIn, userRole]);
+  }, [isSignedIn]);
 
   const filteredIssues = issues.filter(issue => {
     const statusMatch = filterStatus === 'all' || issue.status === filterStatus;

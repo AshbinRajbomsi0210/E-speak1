@@ -84,9 +84,9 @@ WSGI_APPLICATION = 'server.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'espeakdb',
+        'NAME': 'espeak',
         'USER': 'postgres',
-        'PASSWORD': 'admin',
+        'PASSWORD': 'admin123',
         'HOST': '127.0.0.1',
         'PORT': '5432',
     }

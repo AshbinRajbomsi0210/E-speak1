@@ -163,27 +163,49 @@ const LoginForm = ({ forcedRole, redirectTo, onRoleChange }) => {
     <div className="w-full max-w-md mx-auto">
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Role Selection */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           <label className="text-xs font-medium text-text-secondary uppercase tracking-wide">Sign in as</label>
-          <div className="inline-flex rounded-lg bg-muted p-1 w-full">
-            {['user','admin','authority'].map(role => (
-              <button
-                key={role}
-                type="button"
-                onClick={() => {
-                  setFormData(prev => ({ ...prev, userType: role }));
-                  if (onRoleChange) onRoleChange(role);
-                }}
-                className={`flex-1 px-3 py-2 rounded-md text-sm font-medium civic-transition ${
-                  formData.userType === role ? 'bg-background text-foreground shadow-sm' : 'text-text-secondary hover:text-foreground'
-                }`}
-              >
-                <div className="flex items-center justify-center space-x-1.5">
-                  <Icon name={role === 'user' ? 'User' : role === 'admin' ? 'Shield' : 'Award'} size={16} />
-                  <span>{role.charAt(0).toUpperCase() + role.slice(1)}</span>
-                </div>
-              </button>
-            ))}
+          <div className="grid grid-cols-3 gap-2">
+            {['user','admin','authority'].map(role => {
+              const isSelected = formData.userType === role;
+              const roleConfig = {
+                user: { icon: 'User', label: 'User', description: 'Report issues' },
+                admin: { icon: 'Shield', label: 'Admin', description: 'Manage system' },
+                authority: { icon: 'Award', label: 'Authority', description: 'Handle issues' }
+              };
+              const config = roleConfig[role];
+              
+              return (
+                <button
+                  key={role}
+                  type="button"
+                  onClick={() => {
+                    setFormData(prev => ({ ...prev, userType: role }));
+                    if (onRoleChange) onRoleChange(role);
+                  }}
+                  className={`relative flex flex-col items-center p-3 rounded-xl border-2 transition-all duration-200 ${
+                    isSelected 
+                      ? 'bg-primary/10 border-primary shadow-md shadow-primary/20 scale-[1.02]' 
+                      : 'bg-muted/50 border-transparent hover:bg-muted hover:border-border'
+                  }`}
+                >
+                  {isSelected && (
+                    <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
+                      <Icon name="Check" size={12} className="text-white" />
+                    </div>
+                  )}
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 transition-colors ${
+                    isSelected ? 'bg-primary text-white' : 'bg-muted text-text-secondary'
+                  }`}>
+                    <Icon name={config.icon} size={20} />
+                  </div>
+                  <span className={`text-sm font-semibold transition-colors ${isSelected ? 'text-primary' : 'text-foreground'}`}>
+                    {config.label}
+                  </span>
+                  <span className="text-[10px] text-text-secondary mt-0.5">{config.description}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -218,19 +240,6 @@ const LoginForm = ({ forcedRole, redirectTo, onRoleChange }) => {
           </div>
           {capsLockOn && <p className="text-xs text-warning">Caps Lock is ON</p>}
           {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
-          {!errors.password && formData.password && (
-            <div className="space-y-1">
-              <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
-                <div
-                  className={`h-full transition-all duration-300 ${
-                    passwordStrength.score <= 2 ? 'bg-error' : passwordStrength.score === 3 ? 'bg-warning' : passwordStrength.score === 4 ? 'bg-success' : 'bg-primary'
-                  }`}
-                  style={{ width: `${(passwordStrength.score/6)*100}%` }}
-                ></div>
-              </div>
-              <p className="text-xs text-text-secondary flex items-center space-x-2"><span>Password strength:</span><span className="font-medium">{passwordStrength.label}</span></p>
-            </div>
-          )}
         </div>
 
         {/* Remember Me */}
