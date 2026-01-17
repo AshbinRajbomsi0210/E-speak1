@@ -118,141 +118,78 @@ const LocationSelector = ({ location, onLocationChange }) => {
   };
 
   return (
-    <div className="bg-card rounded-lg border border-border p-6 civic-shadow-card">
-      <div className="flex items-center space-x-3 mb-6">
-        <div className="flex items-center justify-center w-10 h-10 bg-success/10 rounded-lg">
-          <Icon name="MapPin" size={20} className="text-success" />
-        </div>
-        <div>
-          <h2 className="text-xl font-semibold text-foreground">Issue Location</h2>
-          <p className="text-sm text-text-secondary">Specify where the issue is located</p>
-        </div>
-      </div>
-      <div className="space-y-6">
-        {/* Address Input */}
-        <div className="space-y-4">
+    <div className="space-y-3">
+      {/* Address Input & Current Location */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-foreground">Location</label>
+        <div className="flex gap-2">
           <Input
-            label="Street Address"
             type="text"
-            placeholder="Enter the exact address or nearest landmark"
+            placeholder="Enter address or click map"
             value={location?.address || ''}
             onChange={handleAddressChange}
-            required
-            description="Be as specific as possible for accurate location"
+            className="flex-1"
           />
-          
           <Button
             variant="outline"
             onClick={getCurrentLocation}
             disabled={isLoadingLocation}
-            iconName="Navigation"
-            iconPosition="left"
-            className="w-full sm:w-auto"
+            size="sm"
+            className="px-3"
+            title="Use current location"
           >
-            {isLoadingLocation ? 'Getting Location...' : 'Use Current Location'}
+            <Icon name="Navigation" size={16} />
           </Button>
         </div>
+      </div>
 
-        {/* Interactive Map */}
-        <div className="space-y-3">
-          <label className="block text-sm font-medium text-foreground">
-            Pinpoint Location on Map
-          </label>
-          <div className="relative w-full h-80 rounded-lg overflow-hidden border-2 border-border hover:border-primary civic-transition" style={{ zIndex: 1 }}>
-            {isReverseGeocoding && (
-              <div className="absolute inset-0 bg-black/50 z-40 flex items-center justify-center">
-                <div className="bg-white px-6 py-4 rounded-lg shadow-xl flex items-center space-x-3">
-                  <div className="animate-spin">
-                    <Icon name="Loader" size={20} className="text-primary" />
-                  </div>
-                  <span className="text-foreground font-medium">Getting address...</span>
-                </div>
-              </div>
-            )}
-            
-            <InteractiveMap
-              issues={[]}
-              center={mapCenter}
-              zoom={zoomLevel}
-              onClick={handleMapClick}
-              clickable={true}
-              height="100%"
-              showControls={false}
-            />
-            
-            {/* Custom Map Controls */}
-            <div className="absolute top-4 right-4 flex flex-col space-y-2 z-30">
-              <button
-                onClick={() => setZoomLevel(prev => Math.min(prev + 1, 18))}
-                className="flex items-center justify-center w-10 h-10 bg-surface border border-border rounded-lg shadow-lg hover:bg-muted civic-transition"
-                title="Zoom in"
-              >
-                <Icon name="Plus" size={16} />
-              </button>
-              <button
-                onClick={() => setZoomLevel(prev => Math.max(prev - 1, 1))}
-                className="flex items-center justify-center w-10 h-10 bg-surface border border-border rounded-lg shadow-lg hover:bg-muted civic-transition"
-                title="Zoom out"
-              >
-                <Icon name="Minus" size={16} />
-              </button>
-              <button
-                onClick={getCurrentLocation}
-                className="flex items-center justify-center w-10 h-10 bg-surface border border-border rounded-lg shadow-lg hover:bg-muted civic-transition"
-                title="Reset to my location"
-              >
-                <Icon name="MapPin" size={16} />
-              </button>
-            </div>
-            
-            {/* Map Info */}
-            <div className="absolute top-4 left-4 bg-surface border border-border rounded-lg shadow-lg px-4 py-3 z-30">
-              <div className="text-sm font-semibold text-foreground flex items-center space-x-2">
-                <Icon name="MapPin" size={16} className="text-primary" />
-                <span>Select Location</span>
-              </div>
-              <div className="text-xs text-text-secondary mt-1">
-                Zoom Level: {zoomLevel}
-              </div>
-            </div>
-          </div>
-          <p className="text-xs text-text-secondary flex items-center space-x-1">
-            <Icon name="Info" size={14} className="text-primary" />
-            <span>Click anywhere on the map to set the exact location of the issue</span>
-          </p>
-        </div>
-
-        {/* Location Details */}
-        {location?.coordinates && (
-          <div className="p-4 bg-muted rounded-lg">
-            <h4 className="text-sm font-medium text-foreground mb-2 flex items-center">
-              <Icon name="CheckCircle" size={16} className="mr-2 text-success" />
-              Location Confirmed
-            </h4>
-            <div className="space-y-1 text-xs text-text-secondary">
-              <p>Address: {location?.address}</p>
-              <p>Coordinates: {location?.coordinates?.lat?.toFixed(6)}, {location?.coordinates?.lng?.toFixed(6)}</p>
-              {location?.accuracy && (
-                <p>Accuracy: ±{Math.round(location?.accuracy)} meters</p>
-              )}
+      {/* Interactive Map - Compact */}
+      <div className="relative w-full h-64 rounded-lg overflow-hidden border border-border hover:border-primary/50 transition-colors" style={{ zIndex: 1 }}>
+        {isReverseGeocoding && (
+          <div className="absolute inset-0 bg-black/30 z-40 flex items-center justify-center">
+            <div className="bg-card px-3 py-2 rounded-lg flex items-center space-x-2 text-sm">
+              <Icon name="Loader" size={14} className="text-primary animate-spin" />
+              <span>Getting address...</span>
             </div>
           </div>
         )}
-
-        {/* Location Tips */}
-        <div className="p-4 bg-warning/10 rounded-lg border border-warning/20">
-          <h4 className="text-sm font-medium text-foreground mb-2 flex items-center">
-            <Icon name="Info" size={16} className="mr-2 text-warning" />
-            Location Guidelines
-          </h4>
-          <ul className="text-xs text-text-secondary space-y-1">
-            <li>• Provide the most specific address possible</li>
-            <li>• Use landmarks if exact address is unknown</li>
-            <li>• Ensure the pin is placed at the exact issue location</li>
-            <li>• Double-check coordinates for accuracy</li>
-          </ul>
+        
+        <InteractiveMap
+          issues={[]}
+          center={mapCenter}
+          zoom={zoomLevel}
+          onClick={handleMapClick}
+          clickable={true}
+          height="100%"
+          showControls={false}
+        />
+        
+        {/* Compact Map Controls */}
+        <div className="absolute top-2 right-2 flex gap-1 z-30">
+          <button
+            onClick={() => setZoomLevel(prev => Math.min(prev + 1, 18))}
+            className="w-8 h-8 bg-card border border-border rounded flex items-center justify-center hover:bg-muted text-sm"
+          >
+            <Icon name="Plus" size={14} />
+          </button>
+          <button
+            onClick={() => setZoomLevel(prev => Math.max(prev - 1, 1))}
+            className="w-8 h-8 bg-card border border-border rounded flex items-center justify-center hover:bg-muted text-sm"
+          >
+            <Icon name="Minus" size={14} />
+          </button>
         </div>
       </div>
+
+      {/* Location Status */}
+      {location?.coordinates && (
+        <div className="text-xs text-text-secondary p-2 bg-muted rounded border border-border/50">
+          <span className="flex items-center gap-2">
+            <Icon name="CheckCircle" size={12} className="text-success" />
+            {location?.address || 'Location set'}
+          </span>
+        </div>
+      )}
     </div>
   );
 };

@@ -17,6 +17,7 @@ class Issue(models.Model):
     status = models.CharField(max_length=50, default='Submitted')
     upvotes = models.IntegerField(default=0)
     downvotes = models.IntegerField(default=0)
+    views = models.IntegerField(default=0)
     created_at = models.DateTimeField(default=timezone.now)
 
     def save(self, *args, **kwargs):

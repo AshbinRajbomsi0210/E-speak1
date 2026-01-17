@@ -34,6 +34,7 @@ const RecentReportsSection = () => {
           downvotes: issue.downvotes || 0,
           votes: (issue.upvotes || 0) - (issue.downvotes || 0),
           comments: issue.commentCount || 0,
+          views: issue.views || 0,
           timeAgo: getTimeAgo(new Date(issue.created_at)),
           priority: issue.priority.toLowerCase()
         }));
@@ -208,6 +209,10 @@ const RecentReportsSection = () => {
                           <Icon name="MessageCircle" size={14} className="text-text-secondary mr-1" />
                           <span className="text-sm text-text-secondary">{report?.comments}</span>
                         </button>
+                        <div className="flex items-center">
+                          <Icon name="Eye" size={14} className="text-text-secondary mr-1" />
+                          <span className="text-sm text-text-secondary">{report?.views}</span>
+                        </div>
                       </div>
                       <span className="text-sm font-medium text-primary flex items-center space-x-1">
                         <span>View Details</span>

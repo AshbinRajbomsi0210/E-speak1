@@ -12,7 +12,8 @@ from .views import (
     update_issue_status,
     get_comments,
     create_comment,
-    delete_comment
+    delete_comment,
+    increment_views
 )
 
 urlpatterns = [
@@ -24,6 +25,7 @@ urlpatterns = [
     path('<int:pk>/delete/', delete_issue, name='issues-delete'),
     path('<int:pk>/vote/', upvote_issue, name='issues-vote'),
     path('<int:pk>/check-upvote/', check_upvote, name='issues-check-upvote'),
+    path('<int:pk>/increment-views/', increment_views, name='issues-increment-views'),
     path('<int:pk>/comments/', get_comments, name='issues-get-comments'),
     path('<int:pk>/comments/create/', create_comment, name='issues-create-comment'),
     path('<int:pk>/comments/<int:comment_id>/delete/', delete_comment, name='issues-delete-comment'),

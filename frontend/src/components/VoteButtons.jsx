@@ -64,20 +64,6 @@ const VoteButtons = ({ voteScore, userVote, onVote, size = 'medium', className =
       <span className={`${config.text} font-bold min-w-[2.5rem] text-center ${getScoreColor()}`}>
         {formatScore(voteScore)}
       </span>
-
-      {/* Downvote Button */}
-      <button
-        onClick={() => onVote('down')}
-        className={`flex items-center justify-center rounded-md hover:bg-background/80 civic-transition
-          ${userVote === 'down' ? 'text-blue-500' : 'text-text-secondary hover:text-blue-500'}`}
-        title="Downvote"
-      >
-        <Icon 
-          name="ArrowDown" 
-          size={config.icon}
-          strokeWidth={userVote === 'down' ? 3.5 : 3}
-        />
-      </button>
     </div>
   );
 };

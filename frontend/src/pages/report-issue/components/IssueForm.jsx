@@ -9,7 +9,7 @@ const IssueForm = ({ formData, onFormChange }) => {
 
   const categoryOptions = [
     { value: 'infrastructure', label: 'Infrastructure', description: 'Roads, bridges, utilities' },
-    { value: 'public-safety', label: 'Public Safety', description: 'Crime, lighting, emergency services' },
+    { value: 'public safety', label: 'Public Safety', description: 'Crime, lighting, emergency services' },
     { value: 'environment', label: 'Environment', description: 'Pollution, waste, green spaces' },
     { value: 'transportation', label: 'Transportation', description: 'Traffic, parking, public transit' },
     { value: 'community-services', label: 'Community Services', description: 'Parks, libraries, facilities' }

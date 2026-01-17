@@ -96,6 +96,7 @@ const Issues = () => {
           downvotes: issue.downvotes || 0,
           voteScore: (issue.upvotes || 0) - (issue.downvotes || 0),
           votes: issue.upvotes || 0,
+          views: issue.views || 0,
           commentCount: issue.commentCount || 0,
           comments: 0, // Will be implemented with comments system
           hasVoted: false, // Will check on mount

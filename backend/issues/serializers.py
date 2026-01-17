@@ -37,9 +37,9 @@ class IssueSerializer(serializers.ModelSerializer):
             'id', 'report_id', 'title', 'description', 'category', 'priority',
             'reporterName', 'reporterEmail', 'reporterPhone',
             'address', 'latitude', 'longitude', 'status', 'upvotes', 'downvotes', 
-            'voteScore', 'commentCount', 'created_at', 'photos'
+            'voteScore', 'views', 'commentCount', 'created_at', 'photos'
         ]
-        read_only_fields = ('id', 'report_id', 'status', 'upvotes', 'downvotes', 'created_at', 'voteScore', 'commentCount')
+        read_only_fields = ('id', 'report_id', 'status', 'upvotes', 'downvotes', 'views', 'created_at', 'voteScore', 'commentCount')
 
     def get_commentCount(self, obj):
         return obj.comments.count()

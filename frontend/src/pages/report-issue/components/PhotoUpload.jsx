@@ -80,21 +80,13 @@ const PhotoUpload = ({ photos, onPhotosChange }) => {
   };
 
   return (
-    <div className="bg-card rounded-lg border border-border p-6 civic-shadow-card">
-      <div className="flex items-center space-x-3 mb-6">
-        <div className="flex items-center justify-center w-10 h-10 bg-accent/10 rounded-lg">
-          <Icon name="Camera" size={20} className="text-accent" />
-        </div>
-        <div>
-          <h2 className="text-xl font-semibold text-foreground">Photo Evidence</h2>
-          <p className="text-sm text-text-secondary">Upload photos to help illustrate the issue</p>
-        </div>
-      </div>
+    <div className="space-y-3">
       {/* Upload Area */}
       <div
-        className={`relative border-2 border-dashed rounded-lg p-8 text-center civic-transition ${
+        className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-all ${
           dragActive 
-            ? 'border-primary bg-primary/5' :'border-border hover:border-primary/50 hover:bg-muted/50'
+            ? 'border-primary bg-primary/5' 
+            : 'border-border hover:border-primary/50'
         }`}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
@@ -110,81 +102,48 @@ const PhotoUpload = ({ photos, onPhotosChange }) => {
           className="hidden"
         />
         
-        <div className="space-y-4">
-          <div className="flex items-center justify-center w-16 h-16 bg-muted rounded-full mx-auto">
-            <Icon name="Upload" size={24} className="text-text-secondary" />
-          </div>
-          
+        <div className="space-y-2">
+          <Icon name="Upload" size={24} className="text-text-secondary mx-auto" />
           <div>
-            <h3 className="text-lg font-medium text-foreground mb-2">
-              Drop photos here or click to browse
-            </h3>
-            <p className="text-sm text-text-secondary mb-4">
-              Support for JPG, PNG, GIF up to 10MB each. Maximum {maxFiles} photos.
+            <p className="text-sm font-medium text-foreground">Add photos</p>
+            <p className="text-xs text-text-secondary">
+              Drag here or <button onClick={openFileDialog} className="text-primary hover:underline">browse</button>
             </p>
-            
-            <Button
-              variant="outline"
-              onClick={openFileDialog}
-              iconName="Plus"
-              iconPosition="left"
-            >
-              Select Photos
-            </Button>
           </div>
         </div>
       </div>
-      {/* Photo Previews */}
+
+      {/* Photo Previews - Compact Grid */}
       {photos?.length > 0 && (
-        <div className="mt-6">
-          <h3 className="text-sm font-medium text-foreground mb-4">
-            Uploaded Photos ({photos?.length}/{maxFiles})
-          </h3>
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-medium text-foreground">
+              {photos?.length} photo{photos?.length > 1 ? 's' : ''} ({photos?.length}/{maxFiles})
+            </p>
+          </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
             {photos?.map((photo) => (
               <div key={photo?.id} className="relative group">
                 <div className="aspect-square rounded-lg overflow-hidden bg-muted">
                   <Image
                     src={photo?.url}
-                    alt={`Issue photo showing ${photo?.name}`}
+                    alt={photo?.name}
                     className="w-full h-full object-cover"
                   />
                 </div>
                 
                 <button
                   onClick={() => removePhoto(photo?.id)}
-                  className="absolute -top-2 -right-2 w-6 h-6 bg-error text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 civic-transition hover:scale-110"
+                  className="absolute -top-2 -right-2 w-5 h-5 bg-error text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110"
                 >
-                  <Icon name="X" size={14} />
+                  <Icon name="X" size={12} />
                 </button>
-                
-                <div className="mt-2">
-                  <p className="text-xs text-text-secondary truncate" title={photo?.name}>
-                    {photo?.name}
-                  </p>
-                  <p className="text-xs text-text-secondary">
-                    {formatFileSize(photo?.size)}
-                  </p>
-                </div>
               </div>
             ))}
           </div>
         </div>
       )}
-      {/* Tips */}
-      <div className="mt-6 p-4 bg-muted rounded-lg">
-        <h4 className="text-sm font-medium text-foreground mb-2 flex items-center">
-          <Icon name="Lightbulb" size={16} className="mr-2 text-warning" />
-          Photo Tips
-        </h4>
-        <ul className="text-xs text-text-secondary space-y-1">
-          <li>• Take clear, well-lit photos from multiple angles</li>
-          <li>• Include context showing the surrounding area</li>
-          <li>• Capture any safety hazards or damage clearly</li>
-          <li>• Avoid including personal information in photos</li>
-        </ul>
-      </div>
     </div>
   );
 };

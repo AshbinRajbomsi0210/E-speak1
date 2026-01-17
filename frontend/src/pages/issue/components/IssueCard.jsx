@@ -140,6 +140,12 @@ const IssueCard = ({ issue, onVote, onComment, onShare }) => {
             <span className="text-sm font-bold">{issue?.commentCount || issue?.comments || 0}</span>
           </button>
 
+          {/* Views */}
+          <div className="flex items-center space-x-2 px-4 py-2 rounded-full bg-muted/50 border border-border text-text-secondary">
+            <Icon name="Eye" size={18} />
+            <span className="text-sm font-bold">{issue?.views || 0}</span>
+          </div>
+
           {/* Share */}
           <button
             onClick={() => onShare && onShare(issue?.id)}

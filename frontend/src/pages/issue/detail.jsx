@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
 import Header from '../../components/ui/Header';
@@ -17,10 +17,16 @@ const IssueDetail = () => {
   const [newComment, setNewComment] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+  const viewIncrementedRef = useRef(false);
 
   useEffect(() => {
     fetchIssueDetail();
     fetchComments();
+    // Increment view count only once
+    if (!viewIncrementedRef.current) {
+      incrementViewCount();
+      viewIncrementedRef.current = true;
+    }
     // Scroll to comments if hash is present
     if (window.location.hash === '#comments') {
       setTimeout(() => {
@@ -57,6 +63,7 @@ const IssueDetail = () => {
           upvotes: issueData.upvotes || 0,
           downvotes: issueData.downvotes || 0,
           voteScore: issueData.voteScore || 0,
+          views: issueData.views || 0,
           commentCount: issueData.commentCount || 0,
           reporter: {
             name: issueData.reporterName || 'Anonymous',
@@ -70,6 +77,16 @@ const IssueDetail = () => {
       console.error('Error fetching issue:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const incrementViewCount = async () => {
+    try {
+      await fetch(`http://127.0.0.1:8000/api/issues/${id}/increment-views/`, {
+        method: 'POST'
+      });
+    } catch (error) {
+      console.error('Error incrementing view count:', error);
     }
   };
 
@@ -438,6 +455,11 @@ const IssueDetail = () => {
                     <Icon name="MessageCircle" size={20} />
                     <span className="text-sm font-bold">{issue.commentCount || 0}</span>
                   </a>
+
+                  <div className="flex items-center space-x-2 px-4 py-2 rounded-full bg-muted/50 border border-border text-text-secondary">
+                    <Icon name="Eye" size={20} />
+                    <span className="text-sm font-bold">{issue.views || 0}</span>
+                  </div>
                 </div>
 
                 <Button variant="outline" onClick={handleShare}>

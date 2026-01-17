@@ -78,18 +78,20 @@ const MapView = () => {
 
             const normalizeCategory = (category) => {
               if (!category) return 'Other';
+              
+              // Clean the category: remove spaces, hyphens, underscores and convert to lowercase
+              const cleaned = category.toLowerCase().trim().replace(/[\s_-]/g, '');
+              
               const categoryMap = {
                 'infrastructure': 'Infrastructure',
-                'public safety': 'Public Safety',
-                'public_safety': 'Public Safety',
                 'publicsafety': 'Public Safety',
                 'environment': 'Environment',
                 'transportation': 'Transportation',
                 'utilities': 'Utilities',
                 'utility': 'Utilities'
               };
-              const normalized = categoryMap[category.toLowerCase().trim()];
-              return normalized || category.trim();
+              
+              return categoryMap[cleaned] || category.trim();
             };
 
             return {

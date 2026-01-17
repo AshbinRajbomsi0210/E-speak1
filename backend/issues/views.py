@@ -157,6 +157,25 @@ def get_stats(request):
     })
 
 @api_view(['POST'])
+def increment_views(request, pk):
+    """
+    Increment view count for an issue
+    """
+    try:
+        issue = Issue.objects.get(pk=pk)
+        issue.views += 1
+        issue.save(update_fields=['views'])
+        return Response({
+            "success": True,
+            "views": issue.views
+        })
+    except Issue.DoesNotExist:
+        return Response(
+            {"success": False, "message": "Issue not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+@api_view(['POST'])
 def upvote_issue(request, pk):
     """
     Upvote or downvote an issue - requires voter_email and vote_type in request body
