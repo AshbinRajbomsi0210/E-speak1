@@ -183,6 +183,7 @@ const LocationSelector = ({ location, onLocationChange }) => {
             clickable={true}
             height="100%"
             showControls={false}
+            selectedLocation={location?.coordinates}
           />
         </div>
         

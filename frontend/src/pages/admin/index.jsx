@@ -11,6 +11,8 @@ const AdminDashboard = () => {
   const { user, isLoaded, isSignedIn } = useUser();
   const { getToken } = useAuth();
   const [userRole, setUserRole] = useState(null);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedIssue, setSelectedIssue] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -54,7 +56,11 @@ const AdminDashboard = () => {
   // Fetch user role from Django backend
   React.useEffect(() => {
     const fetchUserRole = async () => {
-      if (!isSignedIn) return;
+      if (!isSignedIn) {
+        // Not signed in - redirect to login
+        navigate('/login');
+        return;
+      }
       
       try {
         const token = await getToken();
@@ -68,18 +74,30 @@ const AdminDashboard = () => {
           const data = await response.json();
           setUserRole(data.role);
           
-          // Redirect if not admin or authority
-          if (data.role !== 'admin' && data.role !== 'authority') {
+          // Only allow admin role
+          if (data.role === 'admin') {
+            setIsAuthorized(true);
+          } else {
+            // Not admin - redirect to home
             navigate('/home');
           }
+        } else {
+          navigate('/login');
         }
       } catch (error) {
         console.error('Error fetching user role:', error);
+        navigate('/home');
+      } finally {
+        setAuthChecked(true);
       }
     };
 
-    if (isLoaded && isSignedIn) {
-      fetchUserRole();
+    if (isLoaded) {
+      if (!isSignedIn) {
+        navigate('/login');
+      } else {
+        fetchUserRole();
+      }
     }
   }, [isLoaded, isSignedIn, getToken, navigate]);
 
@@ -114,9 +132,10 @@ const AdminDashboard = () => {
               category: issue.category?.toLowerCase() || 'other',
               priority: issue.priority?.toLowerCase() || 'medium',
               status: frontendStatus,
-              reporterName: issue.reporterName || 'Anonymous',
-              reporterEmail: issue.reporterEmail || '',
+              reporterName: issue.displayName || issue.reporterName || 'Anonymous',
+              reporterEmail: issue.isAnonymous ? '[Protected]' : (issue.reporterEmail || ''),
               reporterPhone: issue.reporterPhone || '',
+              isAnonymous: issue.isAnonymous || false,
               location: { address: issue.address || 'No address provided' },
               createdAt: issue.created_at,
               upvotes: issue.upvotes || 0,
@@ -386,6 +405,46 @@ const AdminDashboard = () => {
     { id: 'settings', label: 'System Settings', icon: 'Settings' }
   ];
 
+  // Show loading while checking authentication
+  if (!isLoaded || !authChecked) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="pt-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="flex items-center justify-center min-h-[60vh]">
+              <div className="text-center">
+                <Icon name="Loader2" size={48} className="text-primary animate-spin mx-auto mb-4" />
+                <p className="text-text-secondary">Verifying access...</p>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // Not authorized - show access denied (fallback, should redirect)
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <main className="pt-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="flex items-center justify-center min-h-[60vh]">
+              <div className="text-center">
+                <Icon name="ShieldX" size={48} className="text-error mx-auto mb-4" />
+                <h2 className="text-2xl font-bold text-foreground mb-2">Access Denied</h2>
+                <p className="text-text-secondary mb-4">You don't have permission to access the admin dashboard.</p>
+                <Button onClick={() => navigate('/home')}>Go to Home</Button>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -548,37 +607,53 @@ const AdminDashboard = () => {
                 </div>
               </div>
 
-              {/* Activity Timeline */}
+              {/* Activity Timeline - Recent Issues */}
               <div className="civic-card p-6">
                 <h2 className="text-xl font-semibold text-foreground mb-4">Recent Activity</h2>
                 <div className="space-y-4">
-                  <div className="flex items-start space-x-3">
-                    <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                      <Icon name="AlertCircle" size={16} className="text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-foreground"><span className="font-semibold">John Doe</span> reported a new issue</p>
-                      <p className="text-xs text-text-secondary">2 hours ago</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-3">
-                    <div className="w-8 h-8 bg-success/10 rounded-full flex items-center justify-center flex-shrink-0">
-                      <Icon name="CheckCircle" size={16} className="text-success" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-foreground"><span className="font-semibold">Admin</span> resolved issue #RPT-2025-1118-003</p>
-                      <p className="text-xs text-text-secondary">5 hours ago</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-3">
-                    <div className="w-8 h-8 bg-accent/10 rounded-full flex items-center justify-center flex-shrink-0">
-                      <Icon name="UserPlus" size={16} className="text-accent" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-foreground">New user <span className="font-semibold">Jane Smith</span> joined</p>
-                      <p className="text-xs text-text-secondary">1 day ago</p>
-                    </div>
-                  </div>
+                  {issues.length === 0 ? (
+                    <p className="text-sm text-text-secondary text-center py-4">No recent activity</p>
+                  ) : (
+                    issues.slice(0, 5).map((issue) => (
+                      <div key={issue.id} className="flex items-start space-x-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          issue.status === 'resolved' ? 'bg-success/10' :
+                          issue.status === 'in-progress' ? 'bg-primary/10' :
+                          issue.status === 'rejected' ? 'bg-error/10' :
+                          'bg-warning/10'
+                        }`}>
+                          <Icon 
+                            name={
+                              issue.status === 'resolved' ? 'CheckCircle' :
+                              issue.status === 'in-progress' ? 'Clock' :
+                              issue.status === 'rejected' ? 'XCircle' :
+                              'AlertCircle'
+                            } 
+                            size={16} 
+                            className={
+                              issue.status === 'resolved' ? 'text-success' :
+                              issue.status === 'in-progress' ? 'text-primary' :
+                              issue.status === 'rejected' ? 'text-error' :
+                              'text-warning'
+                            } 
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-foreground truncate">
+                            <span className="font-semibold">{issue.reporterName}</span> reported: {issue.title}
+                          </p>
+                          <p className="text-xs text-text-secondary">
+                            {new Date(issue.createdAt).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })} • <span className="capitalize">{issue.status.replace('-', ' ')}</span>
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             </div>
@@ -1008,7 +1083,14 @@ const AdminDashboard = () => {
 
               <div>
                 <h3 className="text-sm font-semibold text-foreground mb-2">Reporter</h3>
-                <p className="text-text-secondary">{selectedIssue.reporterName} ({selectedIssue.reporterEmail})</p>
+                <p className="text-text-secondary">
+                  {selectedIssue.reporterName}
+                  {selectedIssue.isAnonymous ? (
+                    <span className="ml-2 text-xs bg-muted px-2 py-0.5 rounded-full">Anonymous Report</span>
+                  ) : (
+                    <span> ({selectedIssue.reporterEmail})</span>
+                  )}
+                </p>
               </div>
 
               <div>

@@ -101,8 +101,9 @@ const Issues = () => {
           comments: 0, // Will be implemented with comments system
           hasVoted: false, // Will check on mount
           timeAgo: getTimeAgo(new Date(issue.created_at)),
+          isAnonymous: issue.isAnonymous || false,
           reporter: {
-            name: issue.reporterName || 'Anonymous',
+            name: issue.displayName || issue.reporterName || 'Anonymous',
             avatar: null,
             avatarAlt: ''
           },

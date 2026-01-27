@@ -22,6 +22,7 @@ const ReportIssue = () => {
     reporterName: '',
     reporterEmail: '',
     reporterPhone: '',
+    isAnonymous: false,
     photos: [],
     location: {
       address: '',
@@ -108,6 +109,7 @@ const ReportIssue = () => {
       formDataToSend.append('priority', formData.priority);
       formDataToSend.append('reporterName', formData.reporterName);
       formDataToSend.append('reporterEmail', formData.reporterEmail);
+      formDataToSend.append('isAnonymous', formData.isAnonymous);
       if (formData.reporterPhone) formDataToSend.append('reporterPhone', formData.reporterPhone);
 
       // Append location data
@@ -182,6 +184,7 @@ const ReportIssue = () => {
       reporterName: '',
       reporterEmail: '',
       reporterPhone: '',
+      isAnonymous: false,
       photos: [],
       location: {
         address: '',

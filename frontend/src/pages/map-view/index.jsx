@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Header from '../../components/ui/Header';
 import MapContainer from './components/MapContainer';
 import FilterPanel from './components/FilterPanel';
@@ -8,6 +9,7 @@ import MapStats from './components/MapStats';
 import Icon from '../../components/AppIcon';
 
 const MapView = () => {
+  const [searchParams] = useSearchParams();
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
   const [selectedIssue, setSelectedIssue] = useState(null);
   const [searchResults, setSearchResults] = useState([]);
@@ -15,6 +17,7 @@ const MapView = () => {
   const [allIssues, setAllIssues] = useState([]);
   const [issues, setIssues] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [initialCenter, setInitialCenter] = useState(null);
 
   const [filters, setFilters] = useState({
     categories: [],
@@ -29,6 +32,28 @@ const MapView = () => {
   useEffect(() => {
     fetchIssues();
   }, []); // Empty dependency array
+
+  // Handle URL parameters to select specific issue from authority dashboard
+  useEffect(() => {
+    if (allIssues.length > 0) {
+      const issueId = searchParams.get('issue');
+      const lat = searchParams.get('lat');
+      const lng = searchParams.get('lng');
+      
+      if (issueId) {
+        // Find the issue and select it
+        const issue = allIssues.find(i => i.id === parseInt(issueId));
+        if (issue) {
+          setSelectedIssue(issue);
+        }
+      }
+      
+      if (lat && lng) {
+        // Set initial center for map
+        setInitialCenter({ lat: parseFloat(lat), lng: parseFloat(lng) });
+      }
+    }
+  }, [allIssues, searchParams]);
 
   // Apply filters whenever filters or allIssues change
   useEffect(() => {
@@ -108,7 +133,7 @@ const MapView = () => {
                 lng: parseFloat(issue.longitude) 
               },
               address: issue.address,
-              reportedBy: issue.reporterName || 'Anonymous',
+              reportedBy: issue.displayName || issue.reporterName || 'Anonymous',
               reportedDate: issue.created_at,
               images: issue.photos?.map(p => p.image) || []
             };
@@ -317,6 +342,7 @@ const MapView = () => {
               filteredIssues={filteredIssues}
               onIssueSelect={setSelectedIssue}
               selectedIssue={selectedIssue}
+              initialCenter={initialCenter}
             />
             
             <MapLegend />

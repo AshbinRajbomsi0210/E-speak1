@@ -11,6 +11,7 @@ class Issue(models.Model):
     reporter_name = models.CharField(max_length=150, blank=True)
     reporter_email = models.EmailField(blank=True)
     reporter_phone = models.CharField(max_length=50, blank=True)
+    is_anonymous = models.BooleanField(default=False)
     address = models.CharField(max_length=512, blank=True)
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
@@ -60,3 +61,16 @@ class IssueComment(models.Model):
 
     def __str__(self):
         return f"Comment by {self.user_name} on {self.issue.report_id}"
+
+
+class IssueView(models.Model):
+    """Track unique views per user/visitor to prevent duplicate counting"""
+    issue = models.ForeignKey(Issue, related_name='issue_views', on_delete=models.CASCADE)
+    viewer_id = models.CharField(max_length=255)  # Email for logged-in users, UUID for anonymous
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        unique_together = ('issue', 'viewer_id')
+
+    def __str__(self):
+        return f"View on {self.issue.report_id} by {self.viewer_id}"

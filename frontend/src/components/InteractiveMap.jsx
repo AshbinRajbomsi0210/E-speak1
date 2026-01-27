@@ -24,10 +24,12 @@ const InteractiveMap = ({
   onClick,
   height = '100%',
   showControls = true,
-  clickable = false
+  clickable = false,
+  selectedLocation = null
 }) => {
   const mapRef = useRef(null);
   const markersRef = useRef([]);
+  const selectedMarkerRef = useRef(null);
   const [mapInstance, setMapInstance] = useState(null);
 
   // Initialize map
@@ -74,6 +76,70 @@ const InteractiveMap = ({
       mapInstance.setView([center.lat, center.lng], zoom);
     }
   }, [center, zoom, mapInstance]);
+
+  // Show marker for selected location (when clicking on map for location selection)
+  useEffect(() => {
+    if (!mapInstance) return;
+
+    // Remove existing selected location marker
+    if (selectedMarkerRef.current) {
+      selectedMarkerRef.current.remove();
+      selectedMarkerRef.current = null;
+    }
+
+    // Add new marker if selectedLocation is provided
+    if (selectedLocation && selectedLocation.lat && selectedLocation.lng) {
+      const selectedIcon = L.divIcon({
+        html: `
+          <div style="
+            position: relative;
+            width: 40px;
+            height: 40px;
+          ">
+            <div style="
+              position: absolute;
+              bottom: 0;
+              left: 50%;
+              transform: translateX(-50%);
+              width: 40px;
+              height: 40px;
+            ">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 0C7.58 0 4 3.58 4 8c0 5.25 8 13 8 13s8-7.75 8-13c0-4.42-3.58-8-8-8z" fill="#ef4444" stroke="#fff" stroke-width="1.5"/>
+                <circle cx="12" cy="8" r="3" fill="#fff"/>
+              </svg>
+            </div>
+            <div style="
+              position: absolute;
+              bottom: -8px;
+              left: 50%;
+              transform: translateX(-50%);
+              width: 12px;
+              height: 12px;
+              background: rgba(239, 68, 68, 0.3);
+              border-radius: 50%;
+              animation: pulse 1.5s ease-out infinite;
+            "></div>
+          </div>
+        `,
+        className: 'selected-location-marker',
+        iconSize: [40, 48],
+        iconAnchor: [20, 40],
+      });
+
+      selectedMarkerRef.current = L.marker(
+        [selectedLocation.lat, selectedLocation.lng],
+        { icon: selectedIcon }
+      ).addTo(mapInstance);
+    }
+
+    return () => {
+      if (selectedMarkerRef.current) {
+        selectedMarkerRef.current.remove();
+        selectedMarkerRef.current = null;
+      }
+    };
+  }, [selectedLocation, mapInstance]);
 
   // Add/update markers when issues change
   useEffect(() => {
@@ -312,6 +378,20 @@ const InteractiveMap = ({
         .custom-popup .leaflet-popup-close-button {
           font-size: 20px;
           padding: 4px 8px;
+        }
+        .selected-location-marker {
+          background: none !important;
+          border: none !important;
+        }
+        @keyframes pulse {
+          0% {
+            transform: translateX(-50%) scale(1);
+            opacity: 1;
+          }
+          100% {
+            transform: translateX(-50%) scale(3);
+            opacity: 0;
+          }
         }
       `}</style>
       

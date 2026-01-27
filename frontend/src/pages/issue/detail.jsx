@@ -7,6 +7,16 @@ import Icon from '../../components/AppIcon';
 import Image from '../../components/AppImage';
 import VoteButtons from '../../components/VoteButtons';
 
+// Helper function to get or create a unique visitor ID for anonymous users
+const getVisitorId = () => {
+  let visitorId = localStorage.getItem('e_speak_visitor_id');
+  if (!visitorId) {
+    visitorId = 'visitor_' + Math.random().toString(36).substring(2) + Date.now().toString(36);
+    localStorage.setItem('e_speak_visitor_id', visitorId);
+  }
+  return visitorId;
+};
+
 const IssueDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -65,8 +75,9 @@ const IssueDetail = () => {
           voteScore: issueData.voteScore || 0,
           views: issueData.views || 0,
           commentCount: issueData.commentCount || 0,
+          isAnonymous: issueData.isAnonymous || false,
           reporter: {
-            name: issueData.reporterName || 'Anonymous',
+            name: issueData.displayName || issueData.reporterName || 'Anonymous',
             email: issueData.reporterEmail || ''
           },
           createdAt: new Date(issueData.created_at),
@@ -82,8 +93,17 @@ const IssueDetail = () => {
 
   const incrementViewCount = async () => {
     try {
+      // Use email for logged-in users, visitor ID for anonymous users
+      const viewerId = isSignedIn && user?.emailAddresses?.[0]?.emailAddress 
+        ? user.emailAddresses[0].emailAddress 
+        : getVisitorId();
+      
       await fetch(`http://127.0.0.1:8000/api/issues/${id}/increment-views/`, {
-        method: 'POST'
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ viewer_id: viewerId })
       });
     } catch (error) {
       console.error('Error incrementing view count:', error);

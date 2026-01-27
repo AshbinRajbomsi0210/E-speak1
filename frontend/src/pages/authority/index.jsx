@@ -74,13 +74,14 @@ const AuthorityDashboard = () => {
             category: issue.category?.toLowerCase() || 'other',
             priority: issue.priority?.toLowerCase() || 'medium',
             status: issue.status?.toLowerCase().replace(' ', '-') || 'pending',
-            reporterName: issue.reporterName || 'Anonymous',
-            reporterEmail: issue.reporterEmail || '',
+            reporterName: issue.displayName || issue.reporterName || 'Anonymous',
+            reporterEmail: issue.isAnonymous ? '[Protected]' : (issue.reporterEmail || ''),
             reporterPhone: issue.reporterPhone || '',
+            isAnonymous: issue.isAnonymous || false,
             location: {
-              latitude: issue.location?.latitude || 0,
-              longitude: issue.location?.longitude || 0,
-              address: issue.location?.address || 'Unknown location',
+              latitude: issue.latitude || 0,
+              longitude: issue.longitude || 0,
+              address: issue.address || 'Unknown location',
             },
             photos: issue.photos || [],
             upvotes: issue.upvotes || 0,
@@ -102,8 +103,7 @@ const AuthorityDashboard = () => {
             resolved,
             rejected,
             highPriority: transformedIssues.filter(i => {
-              const voteScore = (i.upvotes || 0) - (i.downvotes || 0);
-              return voteScore >= 10 && i.status !== 'resolved' && i.status !== 'rejected';
+              return (i.upvotes || 0) >= 5 && i.status !== 'resolved' && i.status !== 'rejected';
             }).length
           });
         }
@@ -187,8 +187,7 @@ const AuthorityDashboard = () => {
           resolved: updatedIssues.filter(i => i.status === 'resolved').length,
           rejected: updatedIssues.filter(i => i.status === 'rejected').length,
           highPriority: updatedIssues.filter(i => {
-            const voteScore = (i.upvotes || 0) - (i.downvotes || 0);
-            return voteScore >= 10 && i.status !== 'resolved' && i.status !== 'rejected';
+            return (i.upvotes || 0) >= 5 && i.status !== 'resolved' && i.status !== 'rejected';
           }).length
         });
         
@@ -399,19 +398,9 @@ const AuthorityDashboard = () => {
                     <div className="flex items-center space-x-3">
                       {/* Vote Score */}
                       <div className="flex items-center space-x-1">
-                        <Icon name="ArrowUp" size={14} className="text-orange-500" />
-                        <span className="text-xs font-medium text-orange-500">{issue.upvotes || 0}</span>
+                        <Icon name="ThumbsUp" size={14} className="text-primary" />
+                        <span className="text-xs font-medium text-primary">{issue.upvotes || 0} votes</span>
                       </div>
-                      <div className="flex items-center space-x-1">
-                        <Icon name="ArrowDown" size={14} className="text-blue-500" />
-                        <span className="text-xs font-medium text-blue-500">{issue.downvotes || 0}</span>
-                      </div>
-                      <span className={`text-xs font-bold ${
-                        (issue.upvotes - (issue.downvotes || 0)) > 0 ? 'text-orange-500' : 
-                        (issue.upvotes - (issue.downvotes || 0)) < 0 ? 'text-blue-500' : 'text-text-secondary'
-                      }`}>
-                        {issue.upvotes - (issue.downvotes || 0) > 0 ? '+' : ''}{issue.upvotes - (issue.downvotes || 0)}
-                      </span>
                     </div>
                   </div>
                 </div>
@@ -503,32 +492,18 @@ const AuthorityDashboard = () => {
                   {/* Voting Statistics */}
                   <div className="bg-muted/30 rounded-lg p-4 border border-border">
                     <p className="text-sm font-medium text-foreground mb-3">Community Engagement</p>
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="flex items-center justify-center">
                       <div className="text-center">
-                        <div className="flex items-center justify-center space-x-1 mb-1">
-                          <Icon name="ArrowUp" size={16} className="text-orange-500" />
-                          <span className="text-2xl font-bold text-orange-500">{selectedIssue.upvotes || 0}</span>
+                        <div className="flex items-center justify-center space-x-2 mb-1">
+                          <Icon name="ThumbsUp" size={20} className="text-primary" />
+                          <span className="text-3xl font-bold text-primary">{selectedIssue.upvotes || 0}</span>
                         </div>
-                        <p className="text-xs text-text-secondary">Upvotes</p>
-                      </div>
-                      <div className="text-center">
-                        <div className="flex items-center justify-center space-x-1 mb-1">
-                          <Icon name="ArrowDown" size={16} className="text-blue-500" />
-                          <span className="text-2xl font-bold text-blue-500">{selectedIssue.downvotes || 0}</span>
-                        </div>
-                        <p className="text-xs text-text-secondary">Downvotes</p>
-                      </div>
-                      <div className="text-center">
-                        <div className="mb-1">
-                          <span className={`text-2xl font-bold ${
-                            (selectedIssue.upvotes - (selectedIssue.downvotes || 0)) > 0 ? 'text-orange-500' : 
-                            (selectedIssue.upvotes - (selectedIssue.downvotes || 0)) < 0 ? 'text-blue-500' : 'text-text-secondary'
-                          }`}>
-                            {selectedIssue.upvotes - (selectedIssue.downvotes || 0) > 0 ? '+' : ''}
-                            {selectedIssue.upvotes - (selectedIssue.downvotes || 0)}
+                        <p className="text-sm text-text-secondary">Community Votes</p>
+                        {(selectedIssue.upvotes || 0) >= 5 && (
+                          <span className="inline-block mt-2 px-2 py-1 bg-warning/10 text-warning text-xs font-medium rounded-full border border-warning/20">
+                            ⚡ High Priority (Threshold Reached)
                           </span>
-                        </div>
-                        <p className="text-xs text-text-secondary">Net Score</p>
+                        )}
                       </div>
                     </div>
                     {selectedIssue.commentCount > 0 && (
@@ -559,8 +534,13 @@ const AuthorityDashboard = () => {
 
                   <div>
                     <p className="text-sm font-medium text-foreground mb-1">Reported By</p>
-                    <p className="text-sm text-text-secondary">{selectedIssue.reporterName}</p>
-                    {selectedIssue.reporterEmail && (
+                    <p className="text-sm text-text-secondary">
+                      {selectedIssue.reporterName}
+                      {selectedIssue.isAnonymous && (
+                        <span className="ml-2 text-xs bg-muted px-2 py-0.5 rounded-full">Anonymous</span>
+                      )}
+                    </p>
+                    {!selectedIssue.isAnonymous && selectedIssue.reporterEmail && (
                       <p className="text-sm text-text-secondary">{selectedIssue.reporterEmail}</p>
                     )}
                   </div>
@@ -585,7 +565,7 @@ const AuthorityDashboard = () => {
                         {selectedIssue.photos.map((photo, index) => (
                           <img
                             key={index}
-                            src={`http://127.0.0.1:8000${photo.photo}`}
+                            src={photo.image?.startsWith('http') ? photo.image : `http://127.0.0.1:8000${photo.image}`}
                             alt={`Issue photo ${index + 1}`}
                             className="w-full h-32 object-cover rounded-lg border border-border"
                           />
@@ -599,7 +579,7 @@ const AuthorityDashboard = () => {
                       variant="outline"
                       fullWidth
                       iconName="MapPin"
-                      onClick={() => window.open(`https://maps.google.com/?q=${selectedIssue.location.latitude},${selectedIssue.location.longitude}`, '_blank')}
+                      onClick={() => navigate(`/map-view?issue=${selectedIssue.dbId}&lat=${selectedIssue.location.latitude}&lng=${selectedIssue.location.longitude}`)}
                     >
                       View on Map
                     </Button>

@@ -159,16 +159,41 @@ def get_stats(request):
 @api_view(['POST'])
 def increment_views(request, pk):
     """
-    Increment view count for an issue
+    Increment view count for an issue only if this viewer hasn't viewed it before
     """
     try:
         issue = Issue.objects.get(pk=pk)
-        issue.views += 1
-        issue.save(update_fields=['views'])
-        return Response({
-            "success": True,
-            "views": issue.views
-        })
+        viewer_id = request.data.get('viewer_id')
+        
+        if not viewer_id:
+            # Fallback: if no viewer_id provided, use IP address
+            x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+            if x_forwarded_for:
+                viewer_id = x_forwarded_for.split(',')[0].strip()
+            else:
+                viewer_id = request.META.get('REMOTE_ADDR', 'unknown')
+        
+        # Check if this viewer has already viewed this issue
+        from .models import IssueView
+        view_exists = IssueView.objects.filter(issue=issue, viewer_id=viewer_id).exists()
+        
+        if not view_exists:
+            # Create view record and increment count
+            IssueView.objects.create(issue=issue, viewer_id=viewer_id)
+            issue.views += 1
+            issue.save(update_fields=['views'])
+            return Response({
+                "success": True,
+                "views": issue.views,
+                "new_view": True
+            })
+        else:
+            # Already viewed, return current count without incrementing
+            return Response({
+                "success": True,
+                "views": issue.views,
+                "new_view": False
+            })
     except Issue.DoesNotExist:
         return Response(
             {"success": False, "message": "Issue not found"},
@@ -273,7 +298,7 @@ def check_vote_threshold(issue):
     """
     Check if issue has reached vote threshold and alert authorities
     """
-    VOTE_THRESHOLD = 10
+    VOTE_THRESHOLD = 5
     
     vote_score = issue.upvotes - issue.downvotes
     

@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'accounts',
     'community',
     'civic_ai',
+    'ai_chatbot',
     'contact',
     'newsletter',
 ]

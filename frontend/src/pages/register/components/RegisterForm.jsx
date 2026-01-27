@@ -29,6 +29,7 @@ const RegisterForm = () => {
   const [code, setCode] = useState('');
   const [resendLoading, setResendLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [socialLoading, setSocialLoading] = useState(null);
 
   // Get query params
   const queryParams = new URLSearchParams(location.search);
@@ -296,7 +297,7 @@ const RegisterForm = () => {
   const handleSocialRegister = async (provider) => {
     if (!isLoaded) return;
     
-    setIsLoading(true);
+    setSocialLoading(provider);
     setErrors({});
     
     try {
@@ -309,7 +310,7 @@ const RegisterForm = () => {
     } catch (error) {
       console.error('OAuth error:', error);
       setErrors({ general: error.errors?.[0]?.message || `${provider} signup failed` });
-      setIsLoading(false);
+      setSocialLoading(null);
     }
   };
 
@@ -536,7 +537,7 @@ const RegisterForm = () => {
           loading={isLoading}
           iconName="UserPlus"
           iconPosition="right"
-          disabled={!!successMessage || isLoading}
+          disabled={!!successMessage || isLoading || !!socialLoading}
         >
           {successMessage ? 'Redirecting…' : 'Create Account'}
         </Button>
@@ -563,25 +564,25 @@ const RegisterForm = () => {
               type="button"
               variant="outline"
               onClick={() => handleSocialRegister('google')}
-              disabled={isLoading || !!successMessage}
+              disabled={isLoading || !!successMessage || !!socialLoading}
               iconName="Mail"
               iconPosition="left"
-              loading={isLoading}
+              loading={socialLoading === 'google'}
               className="relative"
             >
-              {isLoading ? 'Connecting…' : 'Google'}
+              {socialLoading === 'google' ? 'Connecting…' : 'Google'}
             </Button>
             <Button
               type="button"
               variant="outline"
               onClick={() => handleSocialRegister('facebook')}
-              disabled={isLoading || !!successMessage}
+              disabled={isLoading || !!successMessage || !!socialLoading}
               iconName="Facebook"
               iconPosition="left"
-              loading={isLoading}
+              loading={socialLoading === 'facebook'}
               className="relative"
             >
-              {isLoading ? 'Connecting…' : 'Facebook'}
+              {socialLoading === 'facebook' ? 'Connecting…' : 'Facebook'}
             </Button>
           </div>
         </>

@@ -1,15 +1,25 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Icon from '../../../components/AppIcon';
 import InteractiveMap from '../../../components/InteractiveMap';
 
-const MapContainer = ({ filteredIssues, onIssueSelect, selectedIssue }) => {
+const MapContainer = ({ filteredIssues, onIssueSelect, selectedIssue, initialCenter }) => {
+  const navigate = useNavigate();
   const [mapCenter, setMapCenter] = useState({ lat: 27.7172, lng: 85.3240 }); // Kathmandu, Nepal default
   const [zoomLevel, setZoomLevel] = useState(12);
   const [userLocation, setUserLocation] = useState(null);
 
+  // Handle initial center from URL params (e.g., from authority dashboard)
   useEffect(() => {
-    // Get user's current location
-    if (navigator.geolocation) {
+    if (initialCenter && initialCenter.lat && initialCenter.lng) {
+      setMapCenter(initialCenter);
+      setZoomLevel(16); // Zoom in closer when viewing specific issue
+    }
+  }, [initialCenter]);
+
+  useEffect(() => {
+    // Get user's current location (only if no initial center provided)
+    if (!initialCenter && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const location = {
@@ -24,7 +34,7 @@ const MapContainer = ({ filteredIssues, onIssueSelect, selectedIssue }) => {
         }
       );
     }
-  }, []);
+  }, [initialCenter]);
 
   const handleZoomIn = () => {
     setZoomLevel(prev => Math.min(prev + 1, 18));
@@ -133,7 +143,10 @@ const MapContainer = ({ filteredIssues, onIssueSelect, selectedIssue }) => {
               </div>
             </div>
             
-            <button className="w-full mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 civic-transition">
+            <button 
+              onClick={() => navigate(`/issue/${selectedIssue.id}`)}
+              className="w-full mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 civic-transition"
+            >
               View Full Details
             </button>
           </div>

@@ -35,11 +35,12 @@ const Header = () => {
       <header className="fixed top-0 left-0 right-0 z-50 bg-surface border-b border-border civic-shadow-card">
         <div className="flex items-center justify-between h-16 px-4 lg:px-6">
           {/* Logo */}
-          <Link to="/home" className="flex items-center space-x-2">
-            <div className="flex items-center justify-center w-8 h-8 bg-primary rounded-lg">
-              <Icon name="MessageSquare" size={20} color="white" />
-            </div>
-            <span className="text-xl font-bold text-foreground">E-speak</span>
+          <Link to="/home" className="flex items-center ml-40 hover:scale-105 transition-transform duration-200">
+            <img 
+              src="/e-speak.png" 
+              alt="E-speak" 
+              className="h-32 w-auto"
+            />
           </Link>
 
           {/* Desktop Navigation */}

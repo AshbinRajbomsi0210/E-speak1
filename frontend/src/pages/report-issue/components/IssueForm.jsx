@@ -129,11 +129,42 @@ const IssueForm = ({ formData, onFormChange }) => {
           description="Help us understand the urgency of this matter"
         />
 
+        {/* Anonymous Reporting Toggle - Prominent placement */}
+        <div className="bg-gradient-to-r from-primary/5 to-accent/5 rounded-xl p-5 border-2 border-primary/20 hover:border-primary/40 transition-all duration-300">
+          <div className="flex items-start space-x-4">
+            <div className="flex items-center h-6 pt-0.5">
+              <input
+                type="checkbox"
+                id="anonymousReport"
+                checked={formData?.isAnonymous || false}
+                onChange={(e) => onFormChange('isAnonymous', e.target.checked)}
+                className="w-6 h-6 rounded-md border-2 border-primary/50 text-primary focus:ring-primary focus:ring-offset-0 cursor-pointer transition-colors"
+              />
+            </div>
+            <div className="flex-1">
+              <label htmlFor="anonymousReport" className="flex items-center gap-2 text-base font-semibold text-foreground cursor-pointer">
+                <Icon name="Shield" size={20} className="text-primary" />
+                Report Anonymously
+              </label>
+              <p className="text-sm text-text-secondary mt-2 leading-relaxed">
+                Protect your identity while still making your voice heard. Your name will appear as "Anonymous" on the public issue report. 
+                Your email will be stored securely for administrative purposes only.
+              </p>
+              {formData?.isAnonymous && (
+                <div className="mt-3 flex items-center gap-2 text-sm font-medium text-success bg-success/10 px-3 py-2 rounded-lg w-fit">
+                  <Icon name="CheckCircle" size={16} />
+                  <span>Your identity will be protected</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
-            label="Your Name"
+            label={formData?.isAnonymous ? "Your Name (hidden from public)" : "Your Name"}
             type="text"
-            placeholder="Full name"
+            placeholder={formData?.isAnonymous ? "Your name (will be kept private)" : "Full name"}
             value={formData?.reporterName || ''}
             onChange={(e) => onFormChange('reporterName', e?.target?.value)}
             required
@@ -146,7 +177,7 @@ const IssueForm = ({ formData, onFormChange }) => {
             value={formData?.reporterEmail || ''}
             onChange={(e) => onFormChange('reporterEmail', e?.target?.value)}
             required
-            description="For updates on your report"
+            description={formData?.isAnonymous ? "Private - only for receiving updates" : "For updates on your report"}
           />
         </div>
 
