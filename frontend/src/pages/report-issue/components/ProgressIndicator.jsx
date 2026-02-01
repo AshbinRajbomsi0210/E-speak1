@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Icon from '../../../components/AppIcon';
 
-const ProgressIndicator = ({ formData }) => {
+const ProgressIndicator = ({ formData, showSummary = false }) => {
   const [hoveredStep, setHoveredStep] = useState(null);
   
   const steps = [
@@ -22,10 +22,25 @@ const ProgressIndicator = ({ formData }) => {
       label: 'Location',
       icon: 'MapPin',
       fields: ['location']
+    },
+    {
+      id: 'review',
+      label: 'Review & Submit',
+      icon: 'CheckSquare',
+      fields: []
     }
   ];
 
   const getStepStatus = (step) => {
+    // Special handling for review step
+    if (step.id === 'review') {
+      if (showSummary) return 'in-progress';
+      // Check if all other steps are complete
+      const otherSteps = steps.filter(s => s.id !== 'review');
+      const allComplete = otherSteps.every(s => getStepStatus(s) === 'complete');
+      return allComplete ? 'pending' : 'pending';
+    }
+    
     const requiredFields = step?.fields;
     let completedFields = 0;
     
@@ -45,7 +60,7 @@ const ProgressIndicator = ({ formData }) => {
       }
     });
     
-    const progress = (completedFields / requiredFields?.length) * 100;
+    const progress = requiredFields?.length > 0 ? (completedFields / requiredFields?.length) * 100 : 0;
     
     if (progress === 100) return 'complete';
     if (progress > 0) return 'in-progress';
@@ -53,9 +68,16 @@ const ProgressIndicator = ({ formData }) => {
   };
 
   const getOverallProgress = () => {
-    const totalSteps = steps?.length;
-    const completedSteps = steps?.filter(step => getStepStatus(step) === 'complete')?.length;
-    return Math.round((completedSteps / totalSteps) * 100);
+    // Don't count the review step in progress calculation
+    const progressSteps = steps.filter(s => s.id !== 'review');
+    const totalSteps = progressSteps?.length;
+    const completedSteps = progressSteps?.filter(step => getStepStatus(step) === 'complete')?.length;
+    let progress = Math.round((completedSteps / totalSteps) * 100);
+    
+    // If on summary page, show 100%
+    if (showSummary) progress = 100;
+    
+    return progress;
   };
 
   const getStepIcon = (step) => {

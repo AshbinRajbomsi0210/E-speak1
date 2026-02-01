@@ -8,6 +8,7 @@ import LocationSelector from './components/LocationSelector';
 import AIAssistant from './components/AIAssistant';
 import ProgressIndicator from './components/ProgressIndicator';
 import SimilarIssues from './components/SimilarIssues';
+import ReportSummary from './components/ReportSummary';
 import Button from '../../components/ui/Button';
 import Icon from '../../components/AppIcon';
 
@@ -33,6 +34,7 @@ const ReportIssue = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [generatedReportId, setGeneratedReportId] = useState('');
+  const [showSummary, setShowSummary] = useState(false);
 
   // Auto-fill user details when signed in
   useEffect(() => {
@@ -93,6 +95,31 @@ const ReportIssue = () => {
     }
 
     return true;
+  };
+
+  const handleProceedToSummary = () => {
+    if (!validateForm()) return;
+    setShowSummary(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleEditFromSummary = (section) => {
+    setShowSummary(false);
+    // Scroll to the appropriate section after a brief delay
+    setTimeout(() => {
+      const sectionMap = {
+        'details': 'issue-form-section',
+        'location': 'location-section',
+        'photos': 'photos-section'
+      };
+      const elementId = sectionMap[section];
+      if (elementId) {
+        const element = document.getElementById(elementId);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+    }, 100);
   };
 
   const handleSubmit = async () => {
@@ -213,48 +240,71 @@ const ReportIssue = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-8">
-              <SimilarIssues 
-                title={formData.title}
-                description={formData.description}
-                category={formData.category}
-                onSelectIssue={(issue) => {
-                  navigate(`/issues?id=${issue.id}`);
-                }}
-              />
-              <IssueForm formData={formData} onFormChange={handleFormChange} />
-              <LocationSelector location={formData.location} onLocationChange={handleLocationChange} />
-              <PhotoUpload photos={formData.photos} onPhotosChange={handlePhotosChange} />
+              {showSummary ? (
+                <ReportSummary
+                  formData={formData}
+                  onEdit={handleEditFromSummary}
+                  onConfirm={handleSubmit}
+                  onBack={() => setShowSummary(false)}
+                  isSubmitting={isSubmitting}
+                />
+              ) : (
+                <>
+                  <SimilarIssues 
+                    title={formData.title}
+                    description={formData.description}
+                    category={formData.category}
+                    onSelectIssue={(issue) => {
+                      navigate(`/issues?id=${issue.id}`);
+                    }}
+                  />
+                  <div id="issue-form-section">
+                    <IssueForm formData={formData} onFormChange={handleFormChange} />
+                  </div>
+                  <div id="location-section">
+                    <LocationSelector location={formData.location} onLocationChange={handleLocationChange} />
+                  </div>
+                  <div id="photos-section">
+                    <PhotoUpload photos={formData.photos} onPhotosChange={handlePhotosChange} />
+                  </div>
 
-              <div className="bg-card rounded-lg border border-border p-6 space-y-4">
-                <Button
-                  variant="default"
-                  className="block mx-auto w-72"
-                  onClick={handleSubmit}
-                  loading={isSubmitting}
-                  disabled={
-                    !formData.title ||
-                    !formData.description ||
-                    !formData.category ||
-                    !formData.priority ||
-                    !formData.reporterName ||
-                    !formData.reporterEmail
-                  }
-                >
-                  {isSubmitting ? 'Submitting…' : 'Submit'}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="block mx-auto w-72"
-                  onClick={resetForm}
-                >
-                  Reset Form
-                </Button>
-              </div>
+                  <div className="bg-card rounded-lg border border-border p-6">
+                    <div className="flex flex-col items-center space-y-4">
+                      <Button
+                        variant="default"
+                        className="w-full sm:w-72"
+                        onClick={handleProceedToSummary}
+                        disabled={
+                          !formData.title ||
+                          !formData.description ||
+                          !formData.category ||
+                          !formData.priority ||
+                          !formData.reporterName ||
+                          !formData.reporterEmail
+                        }
+                        iconName="Eye"
+                        iconPosition="left"
+                      >
+                        Review & Submit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full sm:w-72"
+                        onClick={resetForm}
+                      >
+                        Reset Form
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="space-y-8">
-              <ProgressIndicator formData={formData} />
-              <AIAssistant formData={formData} onSuggestionApply={handleAISuggestion} />
+              <ProgressIndicator formData={formData} showSummary={showSummary} />
+              {!showSummary && (
+                <AIAssistant formData={formData} onSuggestionApply={handleAISuggestion} />
+              )}
             </div>
           </div>
         </div>

@@ -10,12 +10,12 @@ const AuthorityDashboard = () => {
   const { user, isLoaded, isSignedIn } = useUser();
   const { getToken } = useAuth();
   const [userRole, setUserRole] = useState(null);
-  const [activeTab, setActiveTab] = useState('overview');
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedIssue, setSelectedIssue] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterCategory, setFilterCategory] = useState('all');
+  const [activeTab, setActiveTab] = useState('all'); // 'all' or 'high-priority'
   const [stats, setStats] = useState({
     totalIssues: 0,
     pending: 0,
@@ -122,7 +122,18 @@ const AuthorityDashboard = () => {
   const filteredIssues = issues.filter(issue => {
     const statusMatch = filterStatus === 'all' || issue.status === filterStatus;
     const categoryMatch = filterCategory === 'all' || issue.category === filterCategory;
+    const isHighPriority = (issue.upvotes || 0) >= 5 && issue.status !== 'resolved' && issue.status !== 'rejected';
+    
+    // If on high-priority tab, only show high priority issues
+    if (activeTab === 'high-priority') {
+      return isHighPriority && statusMatch && categoryMatch;
+    }
+    
     return statusMatch && categoryMatch;
+  });
+
+  const highPriorityIssues = issues.filter(issue => {
+    return (issue.upvotes || 0) >= 5 && issue.status !== 'resolved' && issue.status !== 'rejected';
   });
 
   const getStatusColor = (status) => {
@@ -290,7 +301,12 @@ const AuthorityDashboard = () => {
           </div>
 
           {/* High Priority Card based on votes */}
-          <div className="bg-gradient-to-br from-orange-500/10 to-red-500/10 border border-orange-500/30 rounded-lg p-6 hover:shadow-lg civic-transition">
+          <div 
+            onClick={() => setActiveTab('high-priority')}
+            className={`bg-gradient-to-br from-orange-500/10 to-red-500/10 border rounded-lg p-6 hover:shadow-lg civic-transition cursor-pointer ${
+              activeTab === 'high-priority' ? 'border-orange-500 ring-2 ring-orange-500/20' : 'border-orange-500/30'
+            }`}
+          >
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-orange-600 dark:text-orange-400 mb-1">High Priority</p>
@@ -301,7 +317,7 @@ const AuthorityDashboard = () => {
               </div>
             </div>
             <p className="text-xs text-orange-600/70 dark:text-orange-400/70 mt-2">
-              ≥10 net votes
+              ≥5 community votes
             </p>
           </div>
         </div>
@@ -358,24 +374,85 @@ const AuthorityDashboard = () => {
         {/* Issues List */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="space-y-4">
-            <h2 className="text-xl font-semibold text-foreground mb-4">
-              Issues ({filteredIssues.length})
+            {/* Tab Switcher */}
+            <div className="flex items-center space-x-2 mb-4">
+              <button
+                onClick={() => setActiveTab('all')}
+                className={`px-4 py-2 rounded-lg font-medium text-sm civic-transition ${
+                  activeTab === 'all'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-text-secondary hover:bg-muted/80'
+                }`}
+              >
+                All Issues ({issues.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('high-priority')}
+                className={`px-4 py-2 rounded-lg font-medium text-sm civic-transition flex items-center space-x-2 ${
+                  activeTab === 'high-priority'
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 border border-orange-500/30'
+                }`}
+              >
+                <Icon name="TrendingUp" size={16} />
+                <span>High Priority ({stats.highPriority})</span>
+                {stats.highPriority > 0 && activeTab !== 'high-priority' && (
+                  <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span>
+                )}
+              </button>
+            </div>
+
+            {/* High Priority Alert Banner */}
+            {activeTab === 'high-priority' && stats.highPriority > 0 && (
+              <div className="bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/30 rounded-lg p-4 mb-4">
+                <div className="flex items-start space-x-3">
+                  <div className="w-10 h-10 bg-orange-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Icon name="AlertTriangle" size={20} className="text-orange-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-orange-600 dark:text-orange-400">Threshold Reached - Requires Immediate Attention</h3>
+                    <p className="text-sm text-orange-600/80 dark:text-orange-400/80 mt-1">
+                      These {stats.highPriority} issue{stats.highPriority > 1 ? 's have' : ' has'} received 5+ community votes, indicating significant public concern. Please prioritize resolution.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <h2 className="text-xl font-semibold text-foreground">
+              {activeTab === 'high-priority' ? 'High Priority Issues' : 'Issues'} ({filteredIssues.length})
             </h2>
             
             {filteredIssues.length === 0 ? (
               <div className="bg-card border border-border rounded-lg p-8 text-center">
                 <Icon name="Inbox" size={48} className="text-text-secondary mx-auto mb-4" />
-                <p className="text-text-secondary">No issues found</p>
+                <p className="text-text-secondary">
+                  {activeTab === 'high-priority' 
+                    ? 'No high priority issues at the moment' 
+                    : 'No issues found'}
+                </p>
               </div>
             ) : (
-              filteredIssues.map(issue => (
+              filteredIssues.map(issue => {
+                const isHighPriority = (issue.upvotes || 0) >= 5 && issue.status !== 'resolved' && issue.status !== 'rejected';
+                return (
                 <div
                   key={issue.id}
                   onClick={() => setSelectedIssue(issue)}
                   className={`bg-card border rounded-lg p-4 hover:shadow-lg civic-transition cursor-pointer ${
-                    selectedIssue?.id === issue.id ? 'border-primary' : 'border-border'
+                    selectedIssue?.id === issue.id 
+                      ? 'border-primary ring-2 ring-primary/20' 
+                      : isHighPriority 
+                        ? 'border-orange-500/50 bg-gradient-to-r from-orange-500/5 to-transparent' 
+                        : 'border-border'
                   }`}
                 >
+                  {isHighPriority && (
+                    <div className="flex items-center space-x-2 mb-3 pb-2 border-b border-orange-500/20">
+                      <Icon name="TrendingUp" size={14} className="text-orange-500" />
+                      <span className="text-xs font-medium text-orange-500">High Priority - Threshold Reached</span>
+                    </div>
+                  )}
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-start space-x-3 flex-1">
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center bg-${getCategoryIcon(issue.category)}/10`}>
@@ -397,14 +474,14 @@ const AuthorityDashboard = () => {
                     </div>
                     <div className="flex items-center space-x-3">
                       {/* Vote Score */}
-                      <div className="flex items-center space-x-1">
-                        <Icon name="ThumbsUp" size={14} className="text-primary" />
-                        <span className="text-xs font-medium text-primary">{issue.upvotes || 0} votes</span>
+                      <div className={`flex items-center space-x-1 ${isHighPriority ? 'text-orange-500' : ''}`}>
+                        <Icon name="ThumbsUp" size={14} className={isHighPriority ? 'text-orange-500' : 'text-primary'} />
+                        <span className={`text-xs font-medium ${isHighPriority ? 'text-orange-500' : 'text-primary'}`}>{issue.upvotes || 0} votes</span>
                       </div>
                     </div>
                   </div>
                 </div>
-              ))
+              )})
             )}
           </div>
 
@@ -500,8 +577,8 @@ const AuthorityDashboard = () => {
                         </div>
                         <p className="text-sm text-text-secondary">Community Votes</p>
                         {(selectedIssue.upvotes || 0) >= 5 && (
-                          <span className="inline-block mt-2 px-2 py-1 bg-warning/10 text-warning text-xs font-medium rounded-full border border-warning/20">
-                            ⚡ High Priority (Threshold Reached)
+                          <span className="inline-block mt-2 px-2 py-1 bg-orange-500/10 text-orange-500 text-xs font-medium rounded-full border border-orange-500/20">
+                            🔥 High Priority - Threshold Reached (5+ votes)
                           </span>
                         )}
                       </div>

@@ -49,12 +49,25 @@ const LocationSelector = ({ location, onLocationChange }) => {
     setIsLoadingLocation(true);
     setLocationStatus('loading');
     
-    if (navigator.geolocation) {
-      navigator.geolocation?.getCurrentPosition(
-        async (position) => {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by this browser.');
+      setIsLoadingLocation(false);
+      setLocationStatus('error');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+        const accuracy = position.coords.accuracy;
+        
+        console.log('Got location:', latitude, longitude);
+        
+        if (latitude !== undefined && longitude !== undefined) {
           const coords = {
-            lat: position?.coords?.latitude,
-            lng: position?.coords?.longitude
+            lat: latitude,
+            lng: longitude
           };
           
           // Get address from coordinates
@@ -63,7 +76,7 @@ const LocationSelector = ({ location, onLocationChange }) => {
           onLocationChange({
             address: address,
             coordinates: coords,
-            accuracy: position?.coords?.accuracy
+            accuracy: accuracy
           });
           
           setMapCenter(coords);
@@ -73,23 +86,39 @@ const LocationSelector = ({ location, onLocationChange }) => {
           
           // Clear success status after 3 seconds
           setTimeout(() => setLocationStatus(null), 3000);
-        },
-        (error) => {
-          console.error('Error getting location:', error);
+        } else {
+          alert('Could not get valid coordinates. Please try again or enter address manually.');
           setIsLoadingLocation(false);
-          setLocationStatus(null);
-          // Silently fail - user can click on map or enter address manually
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 60000
+          setLocationStatus('error');
         }
-      );
-    } else {
-      setIsLoadingLocation(false);
-      setLocationStatus(null);
-    }
+      },
+      (error) => {
+        console.error('Geolocation error:', error.code, error.message);
+        setIsLoadingLocation(false);
+        setLocationStatus('error');
+        
+        let errorMessage = 'Unable to get your current location. ';
+        switch(error.code) {
+          case 1: // PERMISSION_DENIED
+            errorMessage += 'Please allow location access in your browser settings.';
+            break;
+          case 2: // POSITION_UNAVAILABLE
+            errorMessage += 'Location information is unavailable.';
+            break;
+          case 3: // TIMEOUT
+            errorMessage += 'Location request timed out. Please try again.';
+            break;
+          default:
+            errorMessage += 'Please enter the address manually or click on the map.';
+        }
+        alert(errorMessage);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 20000,
+        maximumAge: 0
+      }
+    );
   };
 
   const handleAddressChange = (e) => {

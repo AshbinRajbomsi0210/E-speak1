@@ -457,7 +457,7 @@ const IssueDetail = () => {
             </div>
 
             {/* Actions */}
-            <div className="border-t border-border pt-4">
+            <div id="vote-section" className="border-t border-border pt-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <VoteButtons

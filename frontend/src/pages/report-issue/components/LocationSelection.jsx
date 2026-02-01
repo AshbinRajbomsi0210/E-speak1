@@ -27,41 +27,84 @@ const LocationSelector = ({ location, onLocationChange }) => {
   const getCurrentLocation = () => {
     setIsLoadingLocation(true);
     
-    if (navigator.geolocation) {
-      navigator.geolocation?.getCurrentPosition(
-        (position) => {
-          const coords = {
-            lat: position?.coords?.latitude,
-            lng: position?.coords?.longitude
-          };
-          
-          // Mock reverse geocoding
-          const mockAddress = mockAddresses?.[Math.floor(Math.random() * mockAddresses?.length)];
-          
-          onLocationChange({
-            address: mockAddress,
-            coordinates: coords,
-            accuracy: position?.coords?.accuracy
-          });
-          
-          setMapCenter(coords);
-          setIsLoadingLocation(false);
-        },
-        (error) => {
-          console.error('Error getting location:', error);
-          alert('Unable to get your current location. Please enter the address manually.');
-          setIsLoadingLocation(false);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 300000
-        }
-      );
-    } else {
+    if (!navigator.geolocation) {
       alert('Geolocation is not supported by this browser.');
       setIsLoadingLocation(false);
+      return;
     }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+        const accuracy = position.coords.accuracy;
+        
+        if (latitude && longitude) {
+          const coords = {
+            lat: latitude,
+            lng: longitude
+          };
+          
+          // Reverse geocoding using OpenStreetMap Nominatim API
+          fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`)
+            .then(response => response.json())
+            .then(data => {
+              const address = data.display_name || mockAddresses[Math.floor(Math.random() * mockAddresses.length)];
+              
+              onLocationChange({
+                address: address,
+                coordinates: coords,
+                accuracy: accuracy
+              });
+              
+              setMapCenter(coords);
+              setIsLoadingLocation(false);
+            })
+            .catch(() => {
+              // Fallback to mock address if reverse geocoding fails
+              const mockAddress = mockAddresses[Math.floor(Math.random() * mockAddresses.length)];
+              
+              onLocationChange({
+                address: mockAddress,
+                coordinates: coords,
+                accuracy: accuracy
+              });
+              
+              setMapCenter(coords);
+              setIsLoadingLocation(false);
+            });
+        } else {
+          alert('Could not get valid coordinates. Please enter the address manually.');
+          setIsLoadingLocation(false);
+        }
+      },
+      (error) => {
+        console.error('Geolocation error:', error);
+        let errorMessage = 'Unable to get your current location. ';
+        
+        switch(error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage += 'Please allow location access in your browser settings.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage += 'Location information is unavailable.';
+            break;
+          case error.TIMEOUT:
+            errorMessage += 'Location request timed out. Please try again.';
+            break;
+          default:
+            errorMessage += 'Please enter the address manually.';
+        }
+        
+        alert(errorMessage);
+        setIsLoadingLocation(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
+      }
+    );
   };
 
   const handleAddressChange = (e) => {

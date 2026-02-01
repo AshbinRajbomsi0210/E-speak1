@@ -124,7 +124,7 @@ const SimilarIssues = ({ title, description, category, onSelectIssue }) => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => window.open(`/issues?id=${issue.id}`, '_blank')}
+                    onClick={() => window.open(`/issue/${issue.id}`, '_blank')}
                   >
                     <Icon name="ExternalLink" size={14} className="mr-1" />
                     View
@@ -132,7 +132,7 @@ const SimilarIssues = ({ title, description, category, onSelectIssue }) => {
                   <Button
                     variant="default"
                     size="sm"
-                    onClick={() => onSelectIssue && onSelectIssue(issue)}
+                    onClick={() => window.location.href = `/issue/${issue.id}#vote-section`}
                   >
                     <Icon name="ThumbsUp" size={14} className="mr-1" />
                     Upvote
