@@ -2,6 +2,8 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from django.db.models import Q
+from django.core.mail import send_mass_mail, send_mail
+from django.conf import settings
 from .serializers import IssueSerializer, IssueCommentSerializer
 from .models import Issue, IssuePhoto, IssueVote, IssueComment
 
@@ -387,6 +389,7 @@ def search_similar_issues(request):
 def update_issue_status(request, pk):
     """
     Update only the status of an issue (for authority dashboard)
+    Sends email notifications to reporter and upvoters when resolved.
     """
     try:
         issue = Issue.objects.get(pk=pk)
@@ -398,9 +401,15 @@ def update_issue_status(request, pk):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        old_status = issue.status
+        
         # Update status
         issue.status = new_status
         issue.save()
+        
+        # Send email notifications when issue is resolved
+        if new_status == 'Resolved' and old_status != 'Resolved':
+            _send_resolved_notifications(issue)
         
         return Response({
             "success": True,
@@ -412,6 +421,98 @@ def update_issue_status(request, pk):
             {"success": False, "message": "Issue not found"},
             status=status.HTTP_404_NOT_FOUND
         )
+
+
+def _send_resolved_notifications(issue):
+    """
+    Send email notifications to the issue reporter and all upvoters
+    when an issue is marked as resolved.
+    """
+    import threading
+    
+    def _send_emails():
+        try:
+            # Collect all recipient emails
+            recipients = set()
+            
+            # Add reporter email (if not anonymous and has email)
+            if issue.reporter_email and not issue.is_anonymous:
+                recipients.add(issue.reporter_email)
+            
+            # Add all upvoter emails
+            upvoter_emails = IssueVote.objects.filter(
+                issue=issue, 
+                vote_type='up'
+            ).values_list('voter_email', flat=True)
+            recipients.update(upvoter_emails)
+            
+            if not recipients:
+                print(f"No recipients to notify for issue {issue.report_id}")
+                return
+            
+            subject = f'Issue Resolved: {issue.title} ({issue.report_id})'
+            
+            from_email = settings.DEFAULT_FROM_EMAIL
+            
+            # Send individual emails to each recipient
+            for email in recipients:
+                is_reporter = (email == issue.reporter_email)
+                
+                if is_reporter:
+                    message = (
+                        f"Dear {issue.reporter_name or 'Resident'},\n\n"
+                        f"Great news! The issue you reported has been resolved.\n\n"
+                        f"Issue Details:\n"
+                        f"  Report ID: {issue.report_id}\n"
+                        f"  Title: {issue.title}\n"
+                        f"  Category: {issue.category}\n"
+                        f"  Location: {issue.address}\n\n"
+                        f"Description:\n{issue.description}\n\n"
+                        f"Status: ✅ Resolved\n\n"
+                        f"Thank you for reporting this issue and helping improve our community. "
+                        f"Your civic engagement makes a difference!\n\n"
+                        f"If you believe this issue has not been fully addressed, please feel free "
+                        f"to submit a new report.\n\n"
+                        f"Best regards,\n"
+                        f"E-Speak Civic Platform"
+                    )
+                else:
+                    message = (
+                        f"Dear Community Member,\n\n"
+                        f"An issue you supported with your vote has been resolved!\n\n"
+                        f"Issue Details:\n"
+                        f"  Report ID: {issue.report_id}\n"
+                        f"  Title: {issue.title}\n"
+                        f"  Category: {issue.category}\n"
+                        f"  Location: {issue.address}\n\n"
+                        f"Status: ✅ Resolved\n\n"
+                        f"Thank you for supporting this issue and contributing to our community. "
+                        f"Your voice matters!\n\n"
+                        f"Best regards,\n"
+                        f"E-Speak Civic Platform"
+                    )
+                
+                try:
+                    send_mail(
+                        subject=subject,
+                        message=message,
+                        from_email=from_email,
+                        recipient_list=[email],
+                        fail_silently=True,
+                    )
+                    print(f"Notification sent to {email} for issue {issue.report_id}")
+                except Exception as e:
+                    print(f"Failed to send email to {email}: {e}")
+            
+            print(f"Resolved notifications sent for issue {issue.report_id} to {len(recipients)} recipient(s)")
+        
+        except Exception as e:
+            print(f"Error sending resolved notifications for issue {issue.report_id}: {e}")
+    
+    # Send emails in a background thread so the API response is instant
+    thread = threading.Thread(target=_send_emails)
+    thread.daemon = True
+    thread.start()
 
 # Comment endpoints
 @api_view(['GET'])

@@ -168,7 +168,61 @@ const AuthorityDashboard = () => {
     return icons[category] || 'AlertCircle';
   };
 
-  const handleStatusChange = async (issueId, newStatus) => {
+  // Confirmation modal state
+  const [confirmModal, setConfirmModal] = useState({ open: false, issueId: null, newStatus: '', isLoading: false });
+
+  const requestStatusChange = (issueId, newStatus) => {
+    // Open confirmation modal instead of changing directly
+    setConfirmModal({ open: true, issueId, newStatus, isLoading: false });
+  };
+
+  const cancelStatusChange = () => {
+    setConfirmModal({ open: false, issueId: null, newStatus: '', isLoading: false });
+  };
+
+  const confirmStatusChange = async () => {
+    const { issueId, newStatus } = confirmModal;
+    setConfirmModal(prev => ({ ...prev, isLoading: true }));
+
+    // Map frontend status to backend status
+    const statusMap = {
+      'pending': 'Submitted',
+      'in-progress': 'In Progress',
+      'under-review': 'Under Review',
+      'resolved': 'Resolved',
+      'rejected': 'Rejected'
+    };
+    const backendStatus = statusMap[newStatus] || newStatus;
+
+    // Save previous state for rollback
+    const prevIssues = [...issues];
+    const prevStats = { ...stats };
+    const prevSelected = selectedIssue ? { ...selectedIssue } : null;
+
+    // Optimistic UI update — instant feedback
+    setIssues(prev => prev.map(issue => 
+      issue.dbId === issueId ? { ...issue, status: newStatus } : issue
+    ));
+    const updatedIssues = issues.map(issue => 
+      issue.dbId === issueId ? { ...issue, status: newStatus } : issue
+    );
+    setStats({
+      totalIssues: updatedIssues.length,
+      pending: updatedIssues.filter(i => i.status === 'pending').length,
+      inProgress: updatedIssues.filter(i => i.status === 'in-progress').length,
+      resolved: updatedIssues.filter(i => i.status === 'resolved').length,
+      rejected: updatedIssues.filter(i => i.status === 'rejected').length,
+      highPriority: updatedIssues.filter(i => {
+        return (i.upvotes || 0) >= 5 && i.status !== 'resolved' && i.status !== 'rejected';
+      }).length
+    });
+    if (selectedIssue?.dbId === issueId) {
+      setSelectedIssue(prev => ({ ...prev, status: newStatus }));
+    }
+
+    // Close modal immediately for instant feel
+    setConfirmModal({ open: false, issueId: null, newStatus: '', isLoading: false });
+
     try {
       const token = await getToken();
       const response = await fetch(`http://127.0.0.1:8000/api/issues/${issueId}/update-status/`, {
@@ -177,38 +231,23 @@ const AuthorityDashboard = () => {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify({ status: backendStatus })
       });
 
-      if (response.ok) {
-        // Update local state
-        setIssues(prev => prev.map(issue => 
-          issue.dbId === issueId ? { ...issue, status: newStatus } : issue
-        ));
-        
-        // Recalculate stats
-        const updatedIssues = issues.map(issue => 
-          issue.dbId === issueId ? { ...issue, status: newStatus } : issue
-        );
-        
-        setStats({
-          totalIssues: updatedIssues.length,
-          pending: updatedIssues.filter(i => i.status === 'pending').length,
-          inProgress: updatedIssues.filter(i => i.status === 'in-progress').length,
-          resolved: updatedIssues.filter(i => i.status === 'resolved').length,
-          rejected: updatedIssues.filter(i => i.status === 'rejected').length,
-          highPriority: updatedIssues.filter(i => {
-            return (i.upvotes || 0) >= 5 && i.status !== 'resolved' && i.status !== 'rejected';
-          }).length
-        });
-        
-        if (selectedIssue?.dbId === issueId) {
-          setSelectedIssue(prev => ({ ...prev, status: newStatus }));
-        }
+      if (!response.ok) {
+        // Revert on failure
+        setIssues(prevIssues);
+        setStats(prevStats);
+        if (prevSelected) setSelectedIssue(prevSelected);
+        alert('Failed to update issue status. Please try again.');
       }
     } catch (error) {
       console.error('Error updating status:', error);
-      alert('Failed to update issue status');
+      // Revert on error
+      setIssues(prevIssues);
+      setStats(prevStats);
+      if (prevSelected) setSelectedIssue(prevSelected);
+      alert('Failed to update issue status. Please try again.');
     }
   };
 
@@ -504,7 +543,7 @@ const AuthorityDashboard = () => {
                     <label className="text-sm font-medium text-foreground mb-3 block">Update Status</label>
                     <div className="grid grid-cols-2 gap-2">
                       <button
-                        onClick={() => handleStatusChange(selectedIssue.dbId, 'pending')}
+                        onClick={() => requestStatusChange(selectedIssue.dbId, 'pending')}
                         className={`px-4 py-3 rounded-lg border-2 font-medium text-sm civic-transition ${
                           selectedIssue.status === 'pending'
                             ? 'bg-warning/10 border-warning text-warning'
@@ -518,7 +557,7 @@ const AuthorityDashboard = () => {
                       </button>
 
                       <button
-                        onClick={() => handleStatusChange(selectedIssue.dbId, 'in-progress')}
+                        onClick={() => requestStatusChange(selectedIssue.dbId, 'in-progress')}
                         className={`px-4 py-3 rounded-lg border-2 font-medium text-sm civic-transition ${
                           selectedIssue.status === 'in-progress'
                             ? 'bg-primary/10 border-primary text-primary'
@@ -532,7 +571,7 @@ const AuthorityDashboard = () => {
                       </button>
 
                       <button
-                        onClick={() => handleStatusChange(selectedIssue.dbId, 'resolved')}
+                        onClick={() => requestStatusChange(selectedIssue.dbId, 'resolved')}
                         className={`px-4 py-3 rounded-lg border-2 font-medium text-sm civic-transition ${
                           selectedIssue.status === 'resolved'
                             ? 'bg-success/10 border-success text-success'
@@ -546,7 +585,7 @@ const AuthorityDashboard = () => {
                       </button>
 
                       <button
-                        onClick={() => handleStatusChange(selectedIssue.dbId, 'rejected')}
+                        onClick={() => requestStatusChange(selectedIssue.dbId, 'rejected')}
                         className={`px-4 py-3 rounded-lg border-2 font-medium text-sm civic-transition ${
                           selectedIssue.status === 'rejected'
                             ? 'bg-error/10 border-error text-error'
@@ -672,6 +711,94 @@ const AuthorityDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Status Change Confirmation Modal */}
+      {confirmModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-card rounded-xl border border-border w-full max-w-md p-6 shadow-2xl">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                confirmModal.newStatus === 'resolved' ? 'bg-success/10' :
+                confirmModal.newStatus === 'rejected' ? 'bg-error/10' :
+                confirmModal.newStatus === 'in-progress' ? 'bg-primary/10' :
+                'bg-warning/10'
+              }`}>
+                <Icon 
+                  name={confirmModal.newStatus === 'resolved' ? 'CheckCircle' : 
+                        confirmModal.newStatus === 'rejected' ? 'XCircle' : 
+                        confirmModal.newStatus === 'in-progress' ? 'Activity' : 'Clock'} 
+                  size={20} 
+                  className={`${
+                    confirmModal.newStatus === 'resolved' ? 'text-success' :
+                    confirmModal.newStatus === 'rejected' ? 'text-error' :
+                    confirmModal.newStatus === 'in-progress' ? 'text-primary' :
+                    'text-warning'
+                  }`}
+                />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground">Confirm Status Change</h3>
+            </div>
+
+            <p className="text-text-secondary mb-2">
+              You are about to change the status of this issue to{' '}
+              <span className={`font-semibold capitalize ${
+                confirmModal.newStatus === 'resolved' ? 'text-success' :
+                confirmModal.newStatus === 'rejected' ? 'text-error' :
+                confirmModal.newStatus === 'in-progress' ? 'text-primary' :
+                'text-warning'
+              }`}>
+                {confirmModal.newStatus.replace('-', ' ')}
+              </span>.
+            </p>
+
+            {confirmModal.newStatus === 'resolved' && (
+              <div className="bg-success/5 border border-success/20 rounded-lg p-3 mb-4">
+                <div className="flex items-start space-x-2">
+                  <Icon name="Mail" size={16} className="text-success mt-0.5" />
+                  <p className="text-sm text-success">
+                    The issue reporter and all community members who upvoted this issue will be notified via email that it has been resolved.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {confirmModal.newStatus === 'rejected' && (
+              <div className="bg-error/5 border border-error/20 rounded-lg p-3 mb-4">
+                <div className="flex items-start space-x-2">
+                  <Icon name="AlertTriangle" size={16} className="text-error mt-0.5" />
+                  <p className="text-sm text-error">
+                    This action will reject the reported issue. The reporter will be notified.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <p className="text-sm text-text-secondary mb-6">Are you sure you want to proceed with this decision?</p>
+
+            <div className="flex space-x-3">
+              <button
+                onClick={cancelStatusChange}
+                disabled={confirmModal.isLoading}
+                className="flex-1 px-4 py-2.5 rounded-lg border border-border text-text-secondary hover:bg-muted/50 font-medium text-sm civic-transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmStatusChange}
+                disabled={confirmModal.isLoading}
+                className={`flex-1 px-4 py-2.5 rounded-lg font-medium text-sm text-white civic-transition ${
+                  confirmModal.newStatus === 'resolved' ? 'bg-success hover:bg-success/90' :
+                  confirmModal.newStatus === 'rejected' ? 'bg-error hover:bg-error/90' :
+                  confirmModal.newStatus === 'in-progress' ? 'bg-primary hover:bg-primary/90' :
+                  'bg-warning hover:bg-warning/90'
+                }`}
+              >
+                {confirmModal.isLoading ? 'Updating...' : 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -252,31 +252,46 @@ const AdminDashboard = () => {
     };
     const backendStatus = statusMap[newStatus] || newStatus;
 
-    console.log('Updating issue:', issue.dbId, 'to status:', backendStatus);
+    // Confirmation dialog
+    const confirmMsg = newStatus === 'resolved'
+      ? `Are you sure you want to mark this issue as Resolved? The reporter and all upvoters will be notified via email.`
+      : `Are you sure you want to change the status to "${newStatus.replace('-', ' ')}"?`;
+    if (!window.confirm(confirmMsg)) return;
+
+    // Optimistic UI update
+    setIssues(prev => prev.map(i => i.id === issueId ? { ...i, status: newStatus } : i));
+    if (selectedIssue?.id === issueId) {
+      setSelectedIssue(prev => ({ ...prev, status: newStatus }));
+    }
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/api/issues/${issue.dbId}/update/`, {
+      const token = await getToken();
+      const response = await fetch(`http://127.0.0.1:8000/api/issues/${issue.dbId}/update-status/`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ status: backendStatus })
       });
 
       const data = await response.json();
-      console.log('Update response:', data);
 
-      if (response.ok) {
-        // Refresh the issues list to get updated data
-        fetchIssues();
+      if (!response.ok) {
+        // Revert on failure
+        setIssues(prev => prev.map(i => i.id === issueId ? { ...i, status: issue.status } : i));
         if (selectedIssue?.id === issueId) {
-          setSelectedIssue(prev => ({ ...prev, status: backendStatus }));
+          setSelectedIssue(prev => ({ ...prev, status: issue.status }));
         }
-      } else {
-        alert('Failed to update issue status');
+        alert('Failed to update issue status: ' + (data.message || 'Unknown error'));
       }
     } catch (error) {
       console.error('Error updating status:', error);
+      // Revert on error
+      setIssues(prev => prev.map(i => i.id === issueId ? { ...i, status: issue.status } : i));
+      if (selectedIssue?.id === issueId) {
+        setSelectedIssue(prev => ({ ...prev, status: issue.status }));
+      }
       alert('Error updating issue status');
     }
   };
