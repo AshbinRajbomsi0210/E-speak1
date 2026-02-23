@@ -241,3 +241,64 @@ def update_user_role(request, user_id):
             'role': user.role,
         }
     }, status=status.HTTP_200_OK)
+
+
+# ==================== USER SYNC FROM CLERK ====================
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def sync_user_from_clerk(request):
+    """
+    Sync user from Clerk to Supabase PostgreSQL.
+    Called by frontend after Clerk authentication.
+    POST /api/accounts/users/sync/
+    """
+    try:
+        clerk_id = request.data.get('clerk_id')
+        email = request.data.get('email')
+        first_name = request.data.get('first_name', '')
+        last_name = request.data.get('last_name', '')
+        role = request.data.get('role', 'user')
+
+        if not email:
+            return Response({'error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if role not in ['user', 'admin', 'authority']:
+            role = 'user'
+
+        full_name = f"{first_name} {last_name}".strip() or email.split('@')[0]
+
+        print(f"Syncing user from Clerk: {email}, role: {role}")
+
+        # Create or update — NEVER downgrade an existing admin/authority role
+        user, created = User.objects.update_or_create(
+            email=email,
+            defaults={
+                'clerk_user_id': clerk_id,
+                'fullName': full_name,
+            }
+        )
+
+        if created:
+            user.role = role
+            user.save(update_fields=['role'])
+        elif user.role == 'user' and role not in ('user', None):
+            user.role = role
+            user.save(update_fields=['role'])
+
+        print(f"User {'created' if created else 'updated'}: {email} with role {user.role}")
+
+        return Response({
+            'id': user.id,
+            'clerk_id': user.clerk_user_id,
+            'email': user.email,
+            'fullName': user.fullName,
+            'role': user.role,
+            'created': created,
+        }, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+    except Exception as e:
+        print(f"Error syncing user: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return Response({'error': f'Failed to sync user: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)

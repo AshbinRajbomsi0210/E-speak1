@@ -10,6 +10,7 @@ urlpatterns = [
     
     # Clerk-based authentication
     path('me/', views.current_user, name='current-user'),
+    path('users/sync/', views.sync_user_from_clerk, name='sync-user'),
     path('invite-authority/', views.invite_authority, name='invite-authority'),
     path('users/', views.list_users, name='list-users'),
     path('users/<int:user_id>/role/', views.update_user_role, name='update-user-role'),

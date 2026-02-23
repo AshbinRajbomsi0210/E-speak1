@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth Test</title>
+</head>
+<body>
+    <h1>Sign In Test</h1>
+    <button onclick="testSignIn()">Test Sign In</button>
+    <pre id="output"></pre>
+    
+    <script>
+        const BACKEND_URL = 'http://localhost:8000';
+        
+        async function testSignIn() {
+            try {
+                // Simulate Clerk token
+                const fakeToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyXzEyMyIsImVtYWlsIjoidGVzdEB0ZXN0LmNvbSJ9.test';
+                
+                const response = await fetch(`${BACKEND_URL}/api/accounts/users/sync/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${fakeToken}`,
+                    },
+                    body: JSON.stringify({
+                        clerk_id: 'user_test_123',
+                        email: 'test@example.com',
+                        first_name: 'Test',
+                        last_name: 'User',
+                        role: 'user',
+                    }),
+                });
+                
+                const data = await response.json();
+                document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+                console.log('Success:', data);
+            } catch (err) {
+                document.getElementById('output').textContent = 'Error: ' + err.message;
+                console.error('Error:', err);
+            }
+        }
+    </script>
+</body>
+</html>
