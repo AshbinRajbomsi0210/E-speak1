@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Icon from '../../../components/AppIcon';
 import InteractiveMap from '../../../components/InteractiveMap';
 
-const MapContainer = ({ filteredIssues, onIssueSelect, selectedIssue, initialCenter }) => {
+const MapContainer = ({ filteredIssues, onIssueSelect, selectedIssue, initialCenter, searchCenter }) => {
   const navigate = useNavigate();
   const [mapCenter, setMapCenter] = useState({ lat: 27.7172, lng: 85.3240 }); // Kathmandu, Nepal default
   const [zoomLevel, setZoomLevel] = useState(12);
@@ -16,6 +16,14 @@ const MapContainer = ({ filteredIssues, onIssueSelect, selectedIssue, initialCen
       setZoomLevel(16); // Zoom in closer when viewing specific issue
     }
   }, [initialCenter]);
+
+  // Pan to searched location
+  useEffect(() => {
+    if (searchCenter && searchCenter.lat && searchCenter.lng) {
+      setMapCenter(searchCenter);
+      setZoomLevel(15);
+    }
+  }, [searchCenter]);
 
   useEffect(() => {
     // Get user's current location (only if no initial center provided)

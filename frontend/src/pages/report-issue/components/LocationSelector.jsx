@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Input from '../../../components/ui/Input';
 import Button from '../../../components/ui/Button';
 import Icon from '../../../components/AppIcon';
@@ -11,6 +11,14 @@ const LocationSelector = ({ location, onLocationChange }) => {
   const [zoomLevel, setZoomLevel] = useState(12);
   const [locationStatus, setLocationStatus] = useState(null); // 'loading', 'success', 'error'
 
+  // Search state
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const searchTimeoutRef = useRef(null);
+  const dropdownRef = useRef(null);
+  const inputRef = useRef(null);
+
   useEffect(() => {
     if (location?.coordinates) {
       setMapCenter({
@@ -19,6 +27,58 @@ const LocationSelector = ({ location, onLocationChange }) => {
       });
     }
   }, [location?.coordinates]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (
+        dropdownRef.current && !dropdownRef.current.contains(e.target) &&
+        inputRef.current && !inputRef.current.contains(e.target)
+      ) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Forward geocoding — search address using Nominatim
+  const searchAddress = useCallback(async (query) => {
+    if (!query || query.trim().length < 3) {
+      setSearchResults([]);
+      setShowDropdown(false);
+      return;
+    }
+    setIsSearching(true);
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`,
+        { headers: { 'User-Agent': 'E-speak-Civic-App' } }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setSearchResults(data);
+        setShowDropdown(data.length > 0);
+      }
+    } catch (error) {
+      console.error('Address search error:', error);
+    }
+    setIsSearching(false);
+  }, []);
+
+  // Select a search result
+  const handleSelectResult = (result) => {
+    const coords = { lat: parseFloat(result.lat), lng: parseFloat(result.lon) };
+    onLocationChange({
+      address: result.display_name,
+      coordinates: coords,
+      accuracy: 10
+    });
+    setMapCenter(coords);
+    setZoomLevel(16);
+    setShowDropdown(false);
+    setSearchResults([]);
+  };
 
   // Reverse geocoding using Nominatim (OpenStreetMap)
   const reverseGeocode = async (lat, lng) => {
@@ -127,6 +187,14 @@ const LocationSelector = ({ location, onLocationChange }) => {
       ...location,
       address
     });
+
+    // Debounced forward geocoding search
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    searchTimeoutRef.current = setTimeout(() => {
+      searchAddress(address);
+    }, 400);
   };
 
   const handleMapClick = async (coords) => {
@@ -180,13 +248,42 @@ const LocationSelector = ({ location, onLocationChange }) => {
       {/* Address Input */}
       <div className="relative">
         <Input
+          ref={inputRef}
           type="text"
-          placeholder="Enter address or click on the map below"
+          placeholder="Search for an address or click on the map below"
           value={location?.address || ''}
           onChange={handleAddressChange}
+          onFocus={() => { if (searchResults.length > 0) setShowDropdown(true); }}
           className="w-full pl-10"
         />
-        <Icon name="Search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
+        {isSearching ? (
+          <Icon name="Loader" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-primary animate-spin" />
+        ) : (
+          <Icon name="Search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary" />
+        )}
+
+        {/* Search Results Dropdown */}
+        {showDropdown && searchResults.length > 0 && (
+          <div
+            ref={dropdownRef}
+            className="absolute z-50 top-full left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-lg overflow-hidden max-h-60 overflow-y-auto"
+          >
+            {searchResults.map((result, index) => (
+              <button
+                key={result.place_id || index}
+                type="button"
+                onClick={() => handleSelectResult(result)}
+                className="w-full text-left px-4 py-3 hover:bg-muted/70 transition-colors flex items-start gap-3 border-b border-border/50 last:border-b-0"
+              >
+                <Icon name="MapPin" size={16} className="text-primary mt-0.5 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm text-foreground truncate">{result.display_name}</p>
+                  <p className="text-xs text-text-secondary mt-0.5">{result.type?.replace(/_/g, ' ')}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Interactive Map */}

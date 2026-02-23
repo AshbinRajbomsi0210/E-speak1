@@ -74,3 +74,31 @@ class IssueView(models.Model):
 
     def __str__(self):
         return f"View on {self.issue.report_id} by {self.viewer_id}"
+
+
+class Notification(models.Model):
+    """In-app notifications for issue status changes"""
+    NOTIFICATION_TYPES = [
+        ('status_change', 'Status Change'),
+        ('resolved', 'Issue Resolved'),
+        ('rejected', 'Issue Rejected'),
+        ('in_progress', 'In Progress'),
+        ('under_review', 'Under Review'),
+    ]
+
+    issue = models.ForeignKey(Issue, related_name='notifications', on_delete=models.CASCADE)
+    recipient_email = models.EmailField()
+    recipient_name = models.CharField(max_length=150, blank=True)
+    notification_type = models.CharField(max_length=50, choices=NOTIFICATION_TYPES, default='status_change')
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    old_status = models.CharField(max_length=50, blank=True)
+    new_status = models.CharField(max_length=50, blank=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Notification for {self.recipient_email}: {self.title}"

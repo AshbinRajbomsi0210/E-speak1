@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
 import Icon from '../../../components/AppIcon';
+import SimilarIssues from './SimilarIssues';
 
 const countryCodes = [
   { code: '+977', country: 'Nepal', flag: '🇳🇵' },
@@ -34,10 +35,90 @@ const countryCodes = [
   { code: '+94', country: 'Sri Lanka', flag: '🇱🇰' },
 ];
 
-const IssueForm = ({ formData, onFormChange }) => {
+// Inline AI suggestion chip component
+const AISuggestionChip = ({ suggestion, onApply, onDismiss }) => {
+  const [dismissed, setDismissed] = useState(false);
+  const [applied, setApplied] = useState(false);
+
+  if (dismissed) return null;
+
+  if (applied) {
+    return (
+      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-200 rounded-lg text-xs text-green-700 animate-in fade-in duration-200 mt-1.5">
+        <Icon name="CheckCircle" size={13} />
+        <span className="font-medium">Applied!</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2 mt-1.5 animate-in slide-in-from-top-1 fade-in duration-300">
+      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/5 border border-primary/20 rounded-lg text-xs group hover:bg-primary/10 transition-colors">
+        <Icon name="Sparkles" size={13} className="text-primary flex-shrink-0" />
+        <span className="text-text-secondary">
+          {suggestion?.type === 'enhancement' ? (
+            <>Suggested: <span className="font-semibold text-foreground">"{suggestion.value}"</span></>
+          ) : suggestion?.type === 'category' ? (
+            <>Suggested: <span className="font-semibold text-foreground capitalize">{suggestion.value}</span></>
+          ) : suggestion?.type === 'priority' ? (
+            <>Suggested: <span className="font-semibold text-foreground capitalize">{suggestion.value} priority</span></>
+          ) : (
+            <span className="text-text-secondary">{suggestion?.description}</span>
+          )}
+        </span>
+        {(suggestion?.type === 'category' || suggestion?.type === 'priority' || suggestion?.type === 'enhancement') && (
+          <button
+            type="button"
+            onClick={() => {
+              setApplied(true);
+              onApply(suggestion.field, suggestion.value);
+              setTimeout(() => setDismissed(true), 1200);
+            }}
+            className="ml-1 px-2 py-0.5 bg-primary text-white rounded font-medium hover:bg-primary/90 transition-colors"
+          >
+            Apply
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => setDismissed(true)}
+          className="ml-0.5 p-0.5 text-text-secondary hover:text-foreground rounded transition-colors"
+        >
+          <Icon name="X" size={12} />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const IssueForm = ({ formData, onFormChange, similarIssuesProps, aiSuggestions = [], onApplySuggestion }) => {
   const [charCount, setCharCount] = useState(formData?.description?.length || 0);
   const [countryCode, setCountryCode] = useState('+977');
+  const [showSimilar, setShowSimilar] = useState(false);
+  const [titleFocused, setTitleFocused] = useState(false);
+  const titleContainerRef = useRef(null);
   const maxChars = 500;
+
+  // Helper to get suggestions for a specific field type
+  const getSuggestionsForType = (type) => aiSuggestions?.filter(s => s.type === type) || [];
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (titleContainerRef.current && !titleContainerRef.current.contains(e.target)) {
+        setShowSimilar(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Show similar issues dropdown when title has enough text
+  useEffect(() => {
+    if (formData?.title?.length >= 3 && titleFocused) {
+      setShowSimilar(true);
+    }
+  }, [formData?.title, titleFocused]);
 
   const categoryOptions = [
     { value: 'infrastructure', label: 'Infrastructure', description: 'Roads, bridges, utilities' },
@@ -78,16 +159,37 @@ const IssueForm = ({ formData, onFormChange }) => {
         </div>
       </div>
       <form onSubmit={preventSubmit} className="space-y-6">
-        <Input
-          label="Issue Title"
-          type="text"
-          placeholder="Brief, descriptive title of the issue"
-          value={formData?.title || ''}
-          onChange={(e) => onFormChange('title', e?.target?.value)}
-          required
-          maxLength={100}
-          description="Keep it concise and specific"
-        />
+        <div className="relative" ref={titleContainerRef}>
+          <Input
+            label="Issue Title"
+            type="text"
+            placeholder="Brief, descriptive title of the issue"
+            value={formData?.title || ''}
+            onChange={(e) => onFormChange('title', e?.target?.value)}
+            onFocus={() => setTitleFocused(true)}
+            onBlur={() => setTimeout(() => setTitleFocused(false), 200)}
+            required
+            maxLength={100}
+            description="Keep it concise and specific"
+          />
+          {/* Similar Issues Dropdown Overlay */}
+          {showSimilar && similarIssuesProps && (
+            <div className="absolute left-0 right-0 top-full z-50 mt-1">
+              <SimilarIssues
+                title={similarIssuesProps.title}
+                description={similarIssuesProps.description}
+                category={similarIssuesProps.category}
+                onSelectIssue={similarIssuesProps.onSelectIssue}
+                isOverlay={true}
+                onClose={() => setShowSimilar(false)}
+              />
+            </div>
+          )}
+          {/* Inline AI title suggestion */}
+          {getSuggestionsForType('enhancement').map(s => (
+            <AISuggestionChip key={s.id} suggestion={s} onApply={onApplySuggestion} />
+          ))}
+        </div>
 
         <div className="space-y-2">
           <label className="block text-sm font-medium text-foreground">
@@ -107,10 +209,15 @@ const IssueForm = ({ formData, onFormChange }) => {
               {charCount}/{maxChars}
             </span>
           </div>
+          {/* Inline AI description tip */}
+          {getSuggestionsForType('description').map(s => (
+            <AISuggestionChip key={s.id} suggestion={s} />
+          ))}
         </div>
 
-        <Select
-          label="Issue Category"
+        <div>
+          <Select
+            label="Issue Category"
           placeholder="Select the most appropriate category"
           options={categoryOptions}
           value={formData?.category || ''}
@@ -118,9 +225,15 @@ const IssueForm = ({ formData, onFormChange }) => {
           required
           description="This helps route your issue to the right department"
         />
+          {/* Inline AI category suggestion */}
+          {getSuggestionsForType('category').map(s => (
+            <AISuggestionChip key={s.id} suggestion={s} onApply={onApplySuggestion} />
+          ))}
+        </div>
 
-        <Select
-          label="Priority Level"
+        <div>
+          <Select
+            label="Priority Level"
           placeholder="How urgent is this issue?"
           options={priorityOptions}
           value={formData?.priority || ''}
@@ -128,6 +241,16 @@ const IssueForm = ({ formData, onFormChange }) => {
           required
           description="Help us understand the urgency of this matter"
         />
+          {/* Inline AI priority suggestion */}
+          {getSuggestionsForType('priority').map(s => (
+            <AISuggestionChip key={s.id} suggestion={s} onApply={onApplySuggestion} />
+          ))}
+        </div>
+
+        {/* Photo reminder chip */}
+        {getSuggestionsForType('photo').map(s => (
+          <AISuggestionChip key={s.id} suggestion={s} />
+        ))}
 
         {/* Anonymous Reporting Toggle - Prominent placement */}
         <div className="bg-gradient-to-r from-primary/5 to-accent/5 rounded-xl p-5 border-2 border-primary/20 hover:border-primary/40 transition-all duration-300">

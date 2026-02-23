@@ -13,7 +13,10 @@ from .views import (
     get_comments,
     create_comment,
     delete_comment,
-    increment_views
+    increment_views,
+    get_notifications,
+    mark_notification_read,
+    mark_all_notifications_read,
 )
 
 urlpatterns = [
@@ -31,6 +34,10 @@ urlpatterns = [
     path('<int:pk>/comments/<int:comment_id>/delete/', delete_comment, name='issues-delete-comment'),
     path('stats/', get_stats, name='issues-stats'),
     path('search-similar/', search_similar_issues, name='issues-search-similar'),
+    # Notification endpoints
+    path('notifications/', get_notifications, name='notifications-list'),
+    path('notifications/<int:notification_id>/read/', mark_notification_read, name='notification-read'),
+    path('notifications/mark-all-read/', mark_all_notifications_read, name='notifications-mark-all-read'),
 ]
 
 

@@ -42,10 +42,18 @@ const Login = () => {
           
           <div className="space-y-6 max-w-lg">
             <h2 className="text-4xl xl:text-5xl font-bold leading-tight">
-              Welcome Back to Your Community
+              {selectedRole === 'admin' 
+                ? 'System Administration Portal'
+                : selectedRole === 'authority'
+                  ? 'Authority Management Portal'
+                  : 'Welcome Back to Your Community'}
             </h2>
             <p className="text-lg text-white/90 leading-relaxed">
-              Sign in to report issues, engage with your community, and create meaningful change in your neighborhood.
+              {selectedRole === 'admin'
+                ? 'Access the administrative dashboard to manage users, oversee issues, and configure system settings.'
+                : selectedRole === 'authority'
+                  ? 'Sign in to manage and resolve civic issues assigned to your jurisdiction.'
+                  : 'Sign in to report issues, engage with your community, and create meaningful change in your neighborhood.'}
             </p>
             
             <div className="space-y-4 pt-6">
@@ -106,9 +114,17 @@ const Login = () => {
           </Link>
 
           <div className="text-center lg:text-left space-y-2">
-            <h2 className="text-3xl font-bold text-foreground">Sign In</h2>
+            <h2 className="text-3xl font-bold text-foreground">
+              {selectedRole === 'admin' ? 'Admin Sign In' 
+                : selectedRole === 'authority' ? 'Authority Sign In' 
+                : 'Sign In'}
+            </h2>
             <p className="text-text-secondary">
-              Enter your credentials to access your account
+              {selectedRole === 'admin' 
+                ? 'Enter your admin credentials to access the dashboard'
+                : selectedRole === 'authority'
+                  ? 'Enter your official authority credentials'
+                  : 'Enter your credentials to access your account'}
             </p>
             {from && (
               <div className="mt-4 p-3 bg-primary/10 border border-primary/20 rounded-lg">

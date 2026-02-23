@@ -18,6 +18,7 @@ const MapView = () => {
   const [issues, setIssues] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [initialCenter, setInitialCenter] = useState(null);
+  const [searchCenter, setSearchCenter] = useState(null);
 
   const [filters, setFilters] = useState({
     categories: [],
@@ -233,14 +234,22 @@ const MapView = () => {
 
   const filteredIssues = searchQuery ? searchResults : issues;
 
-  const handleLocationSearch = (location) => {
+  const handleLocationSearch = (location, coords) => {
     if (!location) {
       setSearchQuery('');
       setSearchResults([]);
+      setSearchCenter(null);
       return;
     }
     
     setSearchQuery(location);
+    
+    // If we have geocoded coordinates, pan the map there
+    if (coords && coords.lat && coords.lng) {
+      setSearchCenter({ lat: coords.lat, lng: coords.lng });
+    }
+    
+    // Also filter issues near that location by address text
     const results = allIssues.filter((issue) =>
       issue.address?.toLowerCase().includes(location.toLowerCase())
     );
@@ -267,6 +276,7 @@ const MapView = () => {
   const handleClearSearch = () => {
     setSearchQuery('');
     setSearchResults([]);
+    setSearchCenter(null);
   };
 
   const handleClearFilters = () => {
@@ -343,6 +353,7 @@ const MapView = () => {
               onIssueSelect={setSelectedIssue}
               selectedIssue={selectedIssue}
               initialCenter={initialCenter}
+              searchCenter={searchCenter}
             />
             
             <MapLegend />

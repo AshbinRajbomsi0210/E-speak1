@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
 
-const SimilarIssues = ({ title, description, category, onSelectIssue }) => {
+const SimilarIssues = ({ title, description, category, onSelectIssue, isOverlay = false, onClose }) => {
   const [similarIssues, setSimilarIssues] = useState([]);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -47,7 +47,7 @@ const SimilarIssues = ({ title, description, category, onSelectIssue }) => {
     return () => clearTimeout(timeoutId);
   }, [title, description, category]);
 
-  if (similarIssues.length === 0) {
+  if (similarIssues.length === 0 && !loading) {
     return null;
   }
 
@@ -64,6 +64,92 @@ const SimilarIssues = ({ title, description, category, onSelectIssue }) => {
     if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
     return `${Math.floor(diffDays / 365)} years ago`;
   };
+
+  // Overlay dropdown mode - appears as floating dropdown beneath title input
+  if (isOverlay) {
+    if (similarIssues.length === 0 && !loading) return null;
+
+    return (
+      <div className="bg-card rounded-lg border border-warning/30 shadow-xl shadow-black/10 max-h-80 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="sticky top-0 bg-card border-b border-warning/20 px-4 py-2.5 flex items-center justify-between z-10">
+          <div className="flex items-center space-x-2">
+            <Icon name="AlertTriangle" size={16} className="text-warning" />
+            <span className="text-sm font-semibold text-foreground">
+              {loading ? 'Searching...' : `${similarIssues.length} similar issue${similarIssues.length !== 1 ? 's' : ''} found`}
+            </span>
+          </div>
+          <button
+            onClick={(e) => { e.stopPropagation(); onClose?.(); }}
+            className="p-1 hover:bg-muted rounded transition-colors"
+          >
+            <Icon name="X" size={16} className="text-text-secondary" />
+          </button>
+        </div>
+
+        {loading && (
+          <div className="flex items-center justify-center py-4">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
+          </div>
+        )}
+
+        {!loading && similarIssues.length > 0 && (
+          <div className="p-2 space-y-1.5">
+            <p className="px-2 text-xs text-text-secondary mb-1">Consider upvoting an existing report instead of creating a duplicate.</p>
+            {similarIssues.map((issue) => (
+              <div
+                key={issue.id}
+                className="p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer group"
+              >
+                <div className="flex items-start justify-between space-x-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <span className="text-[10px] font-mono text-text-secondary">{issue.report_id}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 bg-primary/10 text-primary rounded capitalize">
+                        {issue.category}
+                      </span>
+                    </div>
+                    <h4 className="text-sm font-semibold text-foreground truncate">{issue.title}</h4>
+                    <p className="text-xs text-text-secondary line-clamp-1 mt-0.5">{issue.description}</p>
+                    <div className="flex items-center space-x-3 mt-1.5 text-[10px] text-text-secondary">
+                      <div className="flex items-center space-x-1">
+                        <Icon name="ThumbsUp" size={10} />
+                        <span>{issue.upvotes}</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <Icon name="Clock" size={10} />
+                        <span>{getTimeAgo(issue.created_at)}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-1.5 flex-shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs px-2 py-1 h-7"
+                      onClick={(e) => { e.stopPropagation(); window.open(`/issue/${issue.id}`, '_blank'); }}
+                    >
+                      View
+                    </Button>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="text-xs px-2 py-1 h-7"
+                      onClick={(e) => { e.stopPropagation(); window.location.href = `/issue/${issue.id}#vote-section`; }}
+                    >
+                      Upvote
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Original card mode (fallback)
+  if (similarIssues.length === 0) return null;
 
   return (
     <div className="bg-card rounded-lg border border-warning/30 p-6 space-y-4">

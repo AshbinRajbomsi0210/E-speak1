@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Icon from '../../../components/AppIcon';
 
 const SearchBar = ({ onLocationSearch, onIssueSearch, onClearSearch, allIssues = [], hasActiveSearch = false }) => {
@@ -6,21 +6,45 @@ const SearchBar = ({ onLocationSearch, onIssueSearch, onClearSearch, allIssues =
   const [searchType, setSearchType] = useState('issue'); // 'location' or 'issue'
   const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isGeoSearching, setIsGeoSearching] = useState(false);
   const searchRef = useRef(null);
-
-  // Generate location suggestions from actual issues
-  const getLocationSuggestions = () => {
-    const locations = allIssues
-      .map(issue => issue.address)
-      .filter((address, index, self) => address && self.indexOf(address) === index)
-      .slice(0, 10);
-    return locations;
-  };
+  const geoSearchTimeout = useRef(null);
 
   // Generate issue suggestions from actual issues
   const getIssueSuggestions = () => {
     return allIssues.map(issue => issue.title).slice(0, 10);
   };
+
+  // Forward geocode using Nominatim
+  const geocodeSearch = useCallback(async (query) => {
+    if (!query || query.trim().length < 3) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+    setIsGeoSearching(true);
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`,
+        { headers: { 'User-Agent': 'E-speak-Civic-App' } }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        const locationSuggestions = data.map(item => ({
+          label: item.display_name,
+          type: item.type?.replace(/_/g, ' '),
+          lat: parseFloat(item.lat),
+          lng: parseFloat(item.lon),
+          isGeo: true
+        }));
+        setSuggestions(locationSuggestions);
+        setShowSuggestions(locationSuggestions.length > 0);
+      }
+    } catch (error) {
+      console.error('Geocode search error:', error);
+    }
+    setIsGeoSearching(false);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -38,16 +62,23 @@ const SearchBar = ({ onLocationSearch, onIssueSearch, onClearSearch, allIssues =
     setSearchQuery(query);
 
     if (query?.length > 0) {
-      const currentSuggestions = searchType === 'location' ? getLocationSuggestions() : getIssueSuggestions();
-      const filtered = currentSuggestions?.filter(item =>
-        item?.toLowerCase()?.includes(query?.toLowerCase())
-      );
-      setSuggestions(filtered?.slice(0, 5));
-      setShowSuggestions(true);
+      if (searchType === 'location') {
+        // Debounced Nominatim geocoding
+        if (geoSearchTimeout.current) clearTimeout(geoSearchTimeout.current);
+        geoSearchTimeout.current = setTimeout(() => {
+          geocodeSearch(query);
+        }, 400);
+      } else {
+        const currentSuggestions = getIssueSuggestions();
+        const filtered = currentSuggestions?.filter(item =>
+          item?.toLowerCase()?.includes(query?.toLowerCase())
+        );
+        setSuggestions(filtered?.slice(0, 5).map(s => ({ label: s, isGeo: false })));
+        setShowSuggestions(true);
+      }
     } else {
       setSuggestions([]);
       setShowSuggestions(false);
-      // Clear search when input is empty
       if (onClearSearch) {
         onClearSearch();
       }
@@ -55,13 +86,14 @@ const SearchBar = ({ onLocationSearch, onIssueSearch, onClearSearch, allIssues =
   };
 
   const handleSuggestionClick = (suggestion) => {
-    setSearchQuery(suggestion);
     setShowSuggestions(false);
     
-    if (searchType === 'location') {
-      onLocationSearch(suggestion);
+    if (suggestion.isGeo) {
+      setSearchQuery(suggestion.label);
+      onLocationSearch(suggestion.label, { lat: suggestion.lat, lng: suggestion.lng });
     } else {
-      onIssueSearch(suggestion);
+      setSearchQuery(suggestion.label);
+      onIssueSearch(suggestion.label);
     }
   };
 
@@ -69,7 +101,10 @@ const SearchBar = ({ onLocationSearch, onIssueSearch, onClearSearch, allIssues =
     e?.preventDefault();
     if (searchQuery?.trim()) {
       if (searchType === 'location') {
-        onLocationSearch(searchQuery);
+        // Trigger a geocode search on Enter and use first result
+        geocodeSearch(searchQuery).then(() => {
+          // The suggestions will be updated; the user can pick one
+        });
       } else {
         onIssueSearch(searchQuery);
       }
@@ -116,11 +151,15 @@ const SearchBar = ({ onLocationSearch, onIssueSearch, onClearSearch, allIssues =
         {/* Search Input */}
         <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Icon 
-              name={searchType === 'location' ? 'MapPin' : 'Search'} 
-              size={16} 
-              className="text-text-secondary" 
-            />
+            {isGeoSearching && searchType === 'location' ? (
+              <Icon name="Loader" size={16} className="text-primary animate-spin" />
+            ) : (
+              <Icon 
+                name={searchType === 'location' ? 'MapPin' : 'Search'} 
+                size={16} 
+                className="text-text-secondary" 
+              />
+            )}
           </div>
           
           <input
@@ -155,14 +194,19 @@ const SearchBar = ({ onLocationSearch, onIssueSearch, onClearSearch, allIssues =
               key={index}
               type="button"
               onClick={() => handleSuggestionClick(suggestion)}
-              className="w-full px-4 py-3 text-left text-sm text-foreground hover:bg-muted civic-transition flex items-center space-x-2"
+              className="w-full px-4 py-3 text-left text-sm text-foreground hover:bg-muted civic-transition flex items-start gap-2"
             >
               <Icon 
-                name={searchType === 'location' ? 'MapPin' : 'Search'} 
+                name={suggestion.isGeo ? 'MapPin' : 'Search'} 
                 size={14} 
-                className="text-text-secondary flex-shrink-0" 
+                className="text-text-secondary flex-shrink-0 mt-0.5" 
               />
-              <span className="truncate">{suggestion}</span>
+              <div className="min-w-0">
+                <span className="truncate block">{suggestion.label}</span>
+                {suggestion.isGeo && suggestion.type && (
+                  <span className="text-xs text-text-secondary">{suggestion.type}</span>
+                )}
+              </div>
             </button>
           ))}
         </div>

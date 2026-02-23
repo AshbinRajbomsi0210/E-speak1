@@ -32,6 +32,7 @@ import {
   ClerkProvider,
   useAuth,
 } from "@clerk/clerk-react";
+import { NotificationProvider } from "./context/NotificationContext";
 import SSOCallback from "./pages/sso-callback";
 
 // Inside RouterRoutes:
@@ -63,6 +64,7 @@ const Routes = () => {
   return (
     <>
       <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
+        <NotificationProvider>
         <Router>
           <ErrorBoundary>
             <ScrollToTop />
@@ -93,6 +95,7 @@ const Routes = () => {
             </RouterRoutes>
           </ErrorBoundary>
         </Router>
+        </NotificationProvider>
       </ClerkProvider>
     </>
   );

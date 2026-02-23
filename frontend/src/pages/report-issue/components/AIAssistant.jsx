@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
 
-const AIAssistant = ({ formData, onSuggestionApply }) => {
+const AIAssistant = ({ formData, onSuggestionApply, onSuggestionsGenerated, appliedFields = new Set() }) => {
   const [suggestions, setSuggestions] = useState([]);
   const [aiInsights, setAiInsights] = useState(null);
   const [duplicateWarning, setDuplicateWarning] = useState(null);
@@ -11,7 +11,6 @@ const AIAssistant = ({ formData, onSuggestionApply }) => {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [isSendingMessage, setIsSendingMessage] = useState(false);
-  const [confirmModal, setConfirmModal] = useState(null);
 
   const mockSuggestions = [
     {
@@ -177,8 +176,11 @@ const AIAssistant = ({ formData, onSuggestionApply }) => {
           setDuplicateWarning(null);
         }
         
-        // Generate suggestions based on content
+        // Generate suggestions based on content — skip fields already applied
         const relevantSuggestions = mockSuggestions?.filter(suggestion => {
+          // Skip if this field had a suggestion already applied
+          if (appliedFields.has(suggestion?.field)) return false;
+
           if (suggestion?.type === 'category') {
             return formData?.description?.toLowerCase()?.includes('road') || 
                    formData?.description?.toLowerCase()?.includes('pothole');
@@ -196,8 +198,8 @@ const AIAssistant = ({ formData, onSuggestionApply }) => {
           return false;
         });
 
-        // Add creative title enhancement if possible
-        const enhancedTitle = generateTitleEnhancement(formData.title, formData.description);
+        // Add creative title enhancement if possible (skip if title already had suggestion applied)
+        const enhancedTitle = appliedFields.has('title') ? null : generateTitleEnhancement(formData.title, formData.description);
         if (enhancedTitle) {
           relevantSuggestions.push({
             id: 3,
@@ -213,6 +215,11 @@ const AIAssistant = ({ formData, onSuggestionApply }) => {
         }
         
         setSuggestions(relevantSuggestions);
+
+        // Emit suggestions to parent for inline display in the form
+        if (onSuggestionsGenerated) {
+          onSuggestionsGenerated(relevantSuggestions);
+        }
         
         // Fetch real AI insights
         fetchAIInsights();
@@ -401,61 +408,14 @@ Feel free to ask me anything about civic services!`
           </div>
         </div>
       )}
-      {/* AI Suggestions */}
+      {/* Inline suggestions indicator */}
       {suggestions?.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="text-sm font-medium text-foreground">Smart Suggestions</h3>
-          
-          {suggestions?.map((suggestion) => (
-            <div
-              key={suggestion?.id}
-              className={`p-4 rounded-lg border ${getConfidenceBg(suggestion?.confidence)} transition-all hover:shadow-md`}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <h4 className="text-sm font-medium text-foreground">
-                      {suggestion?.title}
-                    </h4>
-                    <span className={`text-xs font-medium ${getConfidenceColor(suggestion?.confidence)}`}>
-                      {suggestion?.confidence}% confident
-                    </span>
-                  </div>
-                  <p className="text-sm text-text-secondary mb-2">
-                    {suggestion?.description}
-                  </p>
-                  
-                  {/* Show benefit */}
-                  {suggestion?.benefit && (
-                    <div className="mb-3 flex items-start gap-2 text-xs text-green-700 bg-green-50/50 p-2 rounded">
-                      <Icon name="CheckCircle2" size={14} className="mt-0.5 flex-shrink-0" />
-                      <span>{suggestion?.benefit}</span>
-                    </div>
-                  )}
-                  
-                  {/* Show enhanced title preview for title suggestions */}
-                  {suggestion?.type === 'enhancement' && suggestion?.enhancedTitle && (
-                    <div className="mb-3 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-md border border-green-200">
-                      <p className="text-xs text-gray-600 mb-1">Preview:</p>
-                      <p className="text-sm font-semibold text-green-900">
-                        {suggestion?.enhancedTitle}
-                      </p>
-                    </div>
-                  )}
-                  
-                  {(suggestion?.type === 'category' || suggestion?.type === 'priority' || suggestion?.type === 'enhancement') && (
-                    <button
-                      onClick={() => setConfirmModal(suggestion)}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white text-sm font-medium rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all duration-200 shadow-sm hover:shadow-md transform hover:scale-105"
-                    >
-                      <Icon name="Sparkles" size={14} />
-                      Apply Suggestion
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
+        <div className="p-3 bg-primary/5 rounded-lg border border-primary/10">
+          <div className="flex items-center gap-2 text-sm text-primary">
+            <Icon name="Sparkles" size={16} />
+            <span className="font-medium">{suggestions.filter(s => s.type === 'category' || s.type === 'priority' || s.type === 'enhancement').length} suggestion{suggestions.filter(s => s.type === 'category' || s.type === 'priority' || s.type === 'enhancement').length !== 1 ? 's' : ''} available</span>
+          </div>
+          <p className="text-xs text-text-secondary mt-1 ml-6">Look for the suggestion chips next to form fields</p>
         </div>
       )}
 
@@ -507,83 +467,6 @@ Feel free to ask me anything about civic services!`
         </ul>
       </div>
 
-      {/* Confirmation Modal */}
-      {confirmModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
-            <div className="flex items-start gap-3 mb-4">
-              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <Icon name="Sparkles" size={20} className="text-green-600" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                  Apply Suggestion?
-                </h3>
-                <p className="text-sm text-gray-600">
-                  {confirmModal.title}
-                </p>
-              </div>
-            </div>
-
-            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-700 mb-2">
-                {confirmModal.description}
-              </p>
-              {confirmModal.benefit && (
-                <div className="flex items-start gap-2 text-xs text-green-700 bg-green-50 p-2 rounded mt-2">
-                  <Icon name="CheckCircle2" size={14} className="mt-0.5 flex-shrink-0" />
-                  <span><strong>Benefit:</strong> {confirmModal.benefit}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Show preview for title enhancement */}
-            {confirmModal.type === 'enhancement' && confirmModal.enhancedTitle && (
-              <div className="mb-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
-                <p className="text-xs text-gray-600 mb-1">Will be applied:</p>
-                <p className="text-sm font-semibold text-green-900">
-                  {confirmModal.enhancedTitle}
-                </p>
-              </div>
-            )}
-            {confirmModal.type === 'category' && (
-              <div className="mb-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
-                <p className="text-xs text-gray-600 mb-1">Will set category to:</p>
-                <p className="text-sm font-semibold text-green-900 capitalize">
-                  {confirmModal.value}
-                </p>
-              </div>
-            )}
-            {confirmModal.type === 'priority' && (
-              <div className="mb-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
-                <p className="text-xs text-gray-600 mb-1">Will set priority to:</p>
-                <p className="text-sm font-semibold text-green-900 capitalize">
-                  {confirmModal.value}
-                </p>
-              </div>
-            )}
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setConfirmModal(null)}
-                className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 font-medium text-sm rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  onSuggestionApply(confirmModal.field, confirmModal.value);
-                  setConfirmModal(null);
-                }}
-                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium text-sm rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all shadow-sm flex items-center justify-center gap-2"
-              >
-                <Icon name="Check" size={16} />
-                Apply Now
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

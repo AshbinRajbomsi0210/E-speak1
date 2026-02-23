@@ -5,7 +5,7 @@ from django.db.models import Q
 from django.core.mail import send_mass_mail, send_mail
 from django.conf import settings
 from .serializers import IssueSerializer, IssueCommentSerializer
-from .models import Issue, IssuePhoto, IssueVote, IssueComment
+from .models import Issue, IssuePhoto, IssueVote, IssueComment, Notification
 
 @api_view(['POST'])
 def create_issue(request):
@@ -389,7 +389,7 @@ def search_similar_issues(request):
 def update_issue_status(request, pk):
     """
     Update only the status of an issue (for authority dashboard)
-    Sends email notifications to reporter and upvoters when resolved.
+    Sends email notifications and creates in-app notifications for ALL status changes.
     """
     try:
         issue = Issue.objects.get(pk=pk)
@@ -403,13 +403,20 @@ def update_issue_status(request, pk):
         
         old_status = issue.status
         
+        # Don't send notifications if status hasn't changed
+        if old_status == new_status:
+            return Response({
+                "success": True,
+                "message": "Status unchanged",
+                "data": IssueSerializer(issue, context={'request': request}).data
+            })
+        
         # Update status
         issue.status = new_status
         issue.save()
         
-        # Send email notifications when issue is resolved
-        if new_status == 'Resolved' and old_status != 'Resolved':
-            _send_resolved_notifications(issue)
+        # Send notifications for ALL status changes
+        _send_status_change_notifications(issue, old_status, new_status)
         
         return Response({
             "success": True,
@@ -423,94 +430,205 @@ def update_issue_status(request, pk):
         )
 
 
-def _send_resolved_notifications(issue):
+# Status display helpers
+STATUS_LABELS = {
+    'Submitted': '📋 Submitted',
+    'Under Review': '🔍 Under Review',
+    'In Discussion': '💬 In Discussion',
+    'In Progress': '🔧 In Progress',
+    'Resolved': '✅ Resolved',
+    'Rejected': '❌ Rejected',
+    'Closed': '🔒 Closed',
+}
+
+STATUS_COLORS = {
+    'Submitted': '#6366f1',
+    'Under Review': '#f59e0b',
+    'In Discussion': '#8b5cf6',
+    'In Progress': '#3b82f6',
+    'Resolved': '#22c55e',
+    'Rejected': '#ef4444',
+    'Closed': '#6b7280',
+}
+
+
+def _get_notification_type(new_status):
+    """Map status to notification type"""
+    mapping = {
+        'Resolved': 'resolved',
+        'Rejected': 'rejected',
+        'In Progress': 'in_progress',
+        'Under Review': 'under_review',
+    }
+    return mapping.get(new_status, 'status_change')
+
+
+def _build_status_email_html(issue, old_status, new_status, is_reporter=True):
+    """Build a styled HTML email for status change notifications"""
+    status_color = STATUS_COLORS.get(new_status, '#6366f1')
+    status_label = STATUS_LABELS.get(new_status, new_status)
+    old_label = STATUS_LABELS.get(old_status, old_status)
+
+    if is_reporter:
+        greeting = f"Dear {issue.reporter_name or 'Resident'},"
+        intro = "We wanted to let you know that the status of the issue you reported has been updated."
+    else:
+        greeting = "Dear Community Member,"
+        intro = "An issue you supported with your vote has a status update."
+
+    html = f"""
+    <html>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
+        <div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <div style="background: linear-gradient(135deg, {status_color}, {status_color}dd); padding: 24px; text-align: center;">
+                <h1 style="color: white; margin: 0; font-size: 22px;">Issue Status Updated</h1>
+                <p style="color: rgba(255,255,255,0.9); margin: 8px 0 0; font-size: 14px;">{issue.report_id}</p>
+            </div>
+            <div style="padding: 24px;">
+                <p style="color: #374151; font-size: 15px;">{greeting}</p>
+                <p style="color: #6b7280; font-size: 14px;">{intro}</p>
+                
+                <div style="background: #f9fafb; border-radius: 8px; padding: 16px; margin: 20px 0;">
+                    <h3 style="color: #111827; margin: 0 0 12px; font-size: 16px;">{issue.title}</h3>
+                    <table style="width: 100%; font-size: 14px; color: #6b7280;">
+                        <tr><td style="padding: 4px 0;"><strong>Category:</strong></td><td>{issue.category or 'N/A'}</td></tr>
+                        <tr><td style="padding: 4px 0;"><strong>Location:</strong></td><td>{issue.address or 'N/A'}</td></tr>
+                    </table>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin: 24px 0; text-align: center;">
+                    <div style="display: inline-block; padding: 8px 16px; background: #f3f4f6; border-radius: 8px; color: #6b7280; font-size: 14px; font-weight: 500;">
+                        {old_label}
+                    </div>
+                    <span style="font-size: 20px; color: #9ca3af;">→</span>
+                    <div style="display: inline-block; padding: 8px 16px; background: {status_color}15; border: 2px solid {status_color}; border-radius: 8px; color: {status_color}; font-size: 14px; font-weight: 600;">
+                        {status_label}
+                    </div>
+                </div>
     """
-    Send email notifications to the issue reporter and all upvoters
-    when an issue is marked as resolved.
+
+    if new_status == 'Resolved':
+        html += """
+                <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 16px 0;">
+                    <p style="color: #166534; margin: 0; font-size: 14px;">
+                        <strong>Great news!</strong> This issue has been resolved. If you believe it hasn't been fully addressed, feel free to submit a new report.
+                    </p>
+                </div>
+        """
+    elif new_status == 'Rejected':
+        html += """
+                <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin: 16px 0;">
+                    <p style="color: #991b1b; margin: 0; font-size: 14px;">
+                        This issue has been reviewed and could not be actioned at this time. If you have additional information, you may submit a new report.
+                    </p>
+                </div>
+        """
+    elif new_status == 'In Progress':
+        html += """
+                <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 16px; margin: 16px 0;">
+                    <p style="color: #1e40af; margin: 0; font-size: 14px;">
+                        The relevant authorities are now actively working on this issue. We'll notify you when there's another update.
+                    </p>
+                </div>
+        """
+
+    html += f"""
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+                    <p style="font-size: 14px; color: #6b7280; margin: 5px 0;">
+                        Best regards,<br>
+                        <strong>The E-speak Team</strong>
+                    </p>
+                </div>
+                <div style="margin-top: 20px; text-align: center; font-size: 12px; color: #9ca3af;">
+                    <p>This email was sent regarding issue <strong>{issue.report_id}</strong></p>
+                    <p><strong>E-speak</strong> — Making Your Voice Heard</p>
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return html
+
+
+def _send_status_change_notifications(issue, old_status, new_status):
+    """
+    Send email + create in-app notification for the issue reporter only
+    on ANY status change. Emails are still sent to upvoters.
     """
     import threading
-    
-    def _send_emails():
+
+    def _do_notify():
         try:
-            # Collect all recipient emails
+            notification_type = _get_notification_type(new_status)
+            status_label = STATUS_LABELS.get(new_status, new_status)
+            notif_title = f"Issue {new_status}: {issue.title}"
+            notif_message = (
+                f"Your issue \"{issue.title}\" ({issue.report_id}) "
+                f"has been updated from {old_status} to {new_status}."
+            )
+
+            # --- In-app notification ONLY for the reporter ---
+            if issue.reporter_email:
+                Notification.objects.create(
+                    issue=issue,
+                    recipient_email=issue.reporter_email,
+                    recipient_name=issue.reporter_name or '',
+                    notification_type=notification_type,
+                    title=notif_title,
+                    message=notif_message,
+                    old_status=old_status,
+                    new_status=new_status,
+                )
+
+            # --- Email notifications (reporter + upvoters) ---
+            upvoter_emails = list(
+                IssueVote.objects.filter(issue=issue, vote_type='up')
+                .values_list('voter_email', flat=True)
+            )
             recipients = set()
-            
-            # Add reporter email (if not anonymous and has email)
-            if issue.reporter_email and not issue.is_anonymous:
+            if issue.reporter_email:
                 recipients.add(issue.reporter_email)
-            
-            # Add all upvoter emails
-            upvoter_emails = IssueVote.objects.filter(
-                issue=issue, 
-                vote_type='up'
-            ).values_list('voter_email', flat=True)
             recipients.update(upvoter_emails)
-            
+
             if not recipients:
                 print(f"No recipients to notify for issue {issue.report_id}")
                 return
-            
-            subject = f'Issue Resolved: {issue.title} ({issue.report_id})'
-            
+
+            subject = f"Issue Update: {issue.title} — Now {new_status} ({issue.report_id})"
             from_email = settings.DEFAULT_FROM_EMAIL
-            
-            # Send individual emails to each recipient
+
             for email in recipients:
                 is_reporter = (email == issue.reporter_email)
-                
-                if is_reporter:
-                    message = (
-                        f"Dear {issue.reporter_name or 'Resident'},\n\n"
-                        f"Great news! The issue you reported has been resolved.\n\n"
-                        f"Issue Details:\n"
-                        f"  Report ID: {issue.report_id}\n"
-                        f"  Title: {issue.title}\n"
-                        f"  Category: {issue.category}\n"
-                        f"  Location: {issue.address}\n\n"
-                        f"Description:\n{issue.description}\n\n"
-                        f"Status: ✅ Resolved\n\n"
-                        f"Thank you for reporting this issue and helping improve our community. "
-                        f"Your civic engagement makes a difference!\n\n"
-                        f"If you believe this issue has not been fully addressed, please feel free "
-                        f"to submit a new report.\n\n"
-                        f"Best regards,\n"
-                        f"E-Speak Civic Platform"
-                    )
-                else:
-                    message = (
-                        f"Dear Community Member,\n\n"
-                        f"An issue you supported with your vote has been resolved!\n\n"
-                        f"Issue Details:\n"
-                        f"  Report ID: {issue.report_id}\n"
-                        f"  Title: {issue.title}\n"
-                        f"  Category: {issue.category}\n"
-                        f"  Location: {issue.address}\n\n"
-                        f"Status: ✅ Resolved\n\n"
-                        f"Thank you for supporting this issue and contributing to our community. "
-                        f"Your voice matters!\n\n"
-                        f"Best regards,\n"
-                        f"E-Speak Civic Platform"
-                    )
-                
+                html_message = _build_status_email_html(issue, old_status, new_status, is_reporter)
+                plain_message = (
+                    f"{'Dear ' + (issue.reporter_name or 'Resident') if is_reporter else 'Dear Community Member'},\n\n"
+                    f"The issue \"{issue.title}\" ({issue.report_id}) has been updated.\n\n"
+                    f"Status: {old_status} → {new_status}\n"
+                    f"Category: {issue.category}\n"
+                    f"Location: {issue.address}\n\n"
+                    f"Best regards,\nE-speak Civic Platform"
+                )
+
                 try:
                     send_mail(
                         subject=subject,
-                        message=message,
+                        message=plain_message,
                         from_email=from_email,
                         recipient_list=[email],
+                        html_message=html_message,
                         fail_silently=True,
                     )
-                    print(f"Notification sent to {email} for issue {issue.report_id}")
+                    print(f"Status change notification sent to {email} for issue {issue.report_id}")
                 except Exception as e:
                     print(f"Failed to send email to {email}: {e}")
-            
-            print(f"Resolved notifications sent for issue {issue.report_id} to {len(recipients)} recipient(s)")
-        
+
+            print(f"Status notifications sent for {issue.report_id} ({old_status} → {new_status}) to {len(recipients)} recipient(s)")
+
         except Exception as e:
-            print(f"Error sending resolved notifications for issue {issue.report_id}: {e}")
-    
-    # Send emails in a background thread so the API response is instant
-    thread = threading.Thread(target=_send_emails)
+            print(f"Error sending status notifications for issue {issue.report_id}: {e}")
+
+    thread = threading.Thread(target=_do_notify)
     thread.daemon = True
     thread.start()
 
@@ -618,3 +736,87 @@ def delete_comment(request, pk, comment_id):
             {"success": False, "message": "Comment not found"},
             status=status.HTTP_404_NOT_FOUND
         )
+
+
+# ===== Notification Endpoints =====
+
+@api_view(['GET'])
+def get_notifications(request):
+    """
+    Get all notifications for a user by email.
+    Query params: email (required), unread_only (optional)
+    """
+    email = request.GET.get('email')
+    if not email:
+        return Response(
+            {"success": False, "message": "Email parameter is required"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    notifications = Notification.objects.filter(recipient_email=email)
+
+    unread_only = request.GET.get('unread_only', '').lower() == 'true'
+    if unread_only:
+        notifications = notifications.filter(is_read=False)
+
+    data = []
+    for n in notifications[:50]:  # Limit to 50 most recent
+        data.append({
+            'id': n.id,
+            'issueId': n.issue.id,
+            'reportId': n.issue.report_id,
+            'issueTitle': n.issue.title,
+            'notificationType': n.notification_type,
+            'title': n.title,
+            'message': n.message,
+            'oldStatus': n.old_status,
+            'newStatus': n.new_status,
+            'isRead': n.is_read,
+            'createdAt': n.created_at.isoformat(),
+        })
+
+    unread_count = Notification.objects.filter(recipient_email=email, is_read=False).count()
+
+    return Response({
+        "success": True,
+        "count": len(data),
+        "unreadCount": unread_count,
+        "data": data
+    })
+
+
+@api_view(['PATCH'])
+def mark_notification_read(request, notification_id):
+    """
+    Mark a single notification as read.
+    """
+    try:
+        notification = Notification.objects.get(pk=notification_id)
+        notification.is_read = True
+        notification.save()
+        return Response({"success": True, "message": "Notification marked as read"})
+    except Notification.DoesNotExist:
+        return Response(
+            {"success": False, "message": "Notification not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+
+@api_view(['PATCH'])
+def mark_all_notifications_read(request):
+    """
+    Mark all notifications as read for a given email.
+    Body: { email: "..." }
+    """
+    email = request.data.get('email')
+    if not email:
+        return Response(
+            {"success": False, "message": "Email is required"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    updated = Notification.objects.filter(recipient_email=email, is_read=False).update(is_read=True)
+    return Response({
+        "success": True,
+        "message": f"Marked {updated} notifications as read"
+    })

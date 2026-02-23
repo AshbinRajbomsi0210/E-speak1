@@ -4,13 +4,14 @@ import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import { Checkbox } from '../../../components/ui/Checkbox';
 import Icon from '../../../components/AppIcon';
-import { useSignIn, useUser } from '@clerk/clerk-react';
+import { useSignIn, useUser, useAuth } from '@clerk/clerk-react';
 
 
 const LoginForm = ({ forcedRole, redirectTo, onRoleChange }) => {
   const navigate = useNavigate();
   const { isLoaded, signIn, setActive } = useSignIn();
   const { user } = useUser();
+  const { getToken, signOut } = useAuth();
 
   const [formData, setFormData] = useState({
     email: '',
@@ -110,6 +111,32 @@ const LoginForm = ({ forcedRole, redirectTo, onRoleChange }) => {
         // Activate the session first
         await setActive({ session: result.createdSessionId });
         
+        // Verify user role matches selected portal
+        try {
+          await new Promise(resolve => setTimeout(resolve, 400));
+          const token = await getToken();
+          if (token) {
+            const resp = await fetch('http://127.0.0.1:8000/api/accounts/me/', {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (resp.ok) {
+              const userData = await resp.json();
+              const actualRole = userData.role || 'user';
+              if (actualRole !== formData.userType) {
+                await signOut();
+                const roleLabels = { user: 'User', admin: 'Admin', authority: 'Authority' };
+                setErrors({
+                  general: `This account is registered as "${roleLabels[actualRole] || actualRole}". You cannot sign in from the ${roleLabels[formData.userType]} portal. Please use the correct sign-in portal for your role.`
+                });
+                setIsLoading(false);
+                return;
+              }
+            }
+          }
+        } catch (roleErr) {
+          console.warn('Role verification skipped:', roleErr.message);
+        }
+
         setSuccessMessage('Authentication successful. Redirecting...');
 
         // Redirect based on role or custom redirectTo
@@ -208,6 +235,20 @@ const LoginForm = ({ forcedRole, redirectTo, onRoleChange }) => {
             })}
           </div>
         </div>
+
+        {/* Role-specific notice */}
+        {formData.userType === 'admin' && (
+          <div className="p-3 bg-muted border border-border rounded-lg flex items-start space-x-2">
+            <Icon name="ShieldAlert" size={18} className="text-primary mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-text-secondary">Admin Portal — Only administrator accounts can sign in here. Unauthorized access attempts are logged.</p>
+          </div>
+        )}
+        {formData.userType === 'authority' && (
+          <div className="p-3 bg-muted border border-border rounded-lg flex items-start space-x-2">
+            <Icon name="BadgeCheck" size={18} className="text-primary mt-0.5 flex-shrink-0" />
+            <p className="text-sm text-text-secondary">Authority Portal — Only authorized officials can sign in here. Use your official credentials.</p>
+          </div>
+        )}
 
         {/* General Error */}
         {errors.general && <div className="p-3 bg-error/10 border border-error/20 rounded-lg"><p className="text-sm text-error">{errors.general}</p></div>}
