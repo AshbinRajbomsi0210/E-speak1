@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import Icon from '../../../components/AppIcon';
-import Button from '../../../components/ui/Button';
 
 const AIAssistant = ({ formData, onSuggestionApply, onSuggestionsGenerated, appliedFields = new Set() }) => {
   const [suggestions, setSuggestions] = useState([]);
   const [aiInsights, setAiInsights] = useState(null);
-  const [duplicateWarning, setDuplicateWarning] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
@@ -104,25 +102,6 @@ const AIAssistant = ({ formData, onSuggestionApply, onSuggestionsGenerated, appl
     return null;
   };
 
-  const mockDuplicates = [
-    {
-      id: 'dup-1',
-      title: 'Large pothole on Main Street causing vehicle damage',
-      reportedDate: '2025-11-08',
-      status: 'Under Review',
-      similarity: 94,
-      reportId: 'RPT-2025-1108-001'
-    },
-    {
-      id: 'dup-2', 
-      title: 'Road damage near downtown intersection',
-      reportedDate: '2025-11-07',
-      status: 'In Progress',
-      similarity: 76,
-      reportId: 'RPT-2025-1107-003'
-    }
-  ];
-
   // Fetch AI insights from civic AI chatbot
   const fetchAIInsights = async () => {
     if (!formData?.description || formData.description.length < 20) {
@@ -168,14 +147,6 @@ const AIAssistant = ({ formData, onSuggestionApply, onSuggestionsGenerated, appl
       
       // Debounce AI analysis
       const timer = setTimeout(() => {
-        // Check for potential duplicates
-        if (formData?.title?.toLowerCase()?.includes('pothole') || 
-            formData?.description?.toLowerCase()?.includes('road damage')) {
-          setDuplicateWarning(mockDuplicates?.[0]);
-        } else {
-          setDuplicateWarning(null);
-        }
-        
         // Generate suggestions based on content — skip fields already applied
         const relevantSuggestions = mockSuggestions?.filter(suggestion => {
           // Skip if this field had a suggestion already applied
@@ -228,7 +199,6 @@ const AIAssistant = ({ formData, onSuggestionApply, onSuggestionsGenerated, appl
       return () => clearTimeout(timer);
     } else {
       setSuggestions([]);
-      setDuplicateWarning(null);
       setAiInsights(null);
     }
   }, [formData?.title, formData?.description, formData?.category]);
@@ -374,40 +344,7 @@ Feel free to ask me anything about civic services!`
           <span className="text-sm text-text-secondary">Analyzing your report...</span>
         </div>
       )}
-      {/* Duplicate Warning */}
-      {duplicateWarning && (
-        <div className="mb-6 p-4 bg-warning/10 border border-warning/20 rounded-lg">
-          <div className="flex items-start space-x-3">
-            <Icon name="AlertTriangle" size={20} className="text-warning mt-0.5" />
-            <div className="flex-1">
-              <h3 className="text-sm font-medium text-foreground mb-2">
-                Potential Duplicate Detected ({duplicateWarning?.similarity}% match)
-              </h3>
-              <p className="text-sm text-text-secondary mb-3">
-                A similar issue may already be reported:
-              </p>
-              <div className="bg-background rounded p-3 mb-3">
-                <p className="text-sm font-medium text-foreground">{duplicateWarning?.title}</p>
-                <div className="flex items-center space-x-4 mt-1 text-xs text-text-secondary">
-                  <span>ID: {duplicateWarning?.reportId}</span>
-                  <span>Reported: {duplicateWarning?.reportedDate}</span>
-                  <span className="px-2 py-1 bg-accent/10 text-accent rounded">
-                    {duplicateWarning?.status}
-                  </span>
-                </div>
-              </div>
-              <div className="flex space-x-2">
-                <Button variant="outline" size="sm">
-                  View Existing Report
-                </Button>
-                <Button variant="ghost" size="sm">
-                  Continue Anyway
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+
       {/* Inline suggestions indicator */}
       {suggestions?.length > 0 && (
         <div className="p-3 bg-primary/5 rounded-lg border border-primary/10">

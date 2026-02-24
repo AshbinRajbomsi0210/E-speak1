@@ -7,9 +7,16 @@ const SimilarIssues = ({ title, description, category, onSelectIssue, isOverlay 
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
+  // Keep description and category in refs so the search always sends the
+  // latest values, but changes to them alone do NOT trigger a new search.
+  const descriptionRef = React.useRef(description);
+  const categoryRef = React.useRef(category);
+  descriptionRef.current = description;
+  categoryRef.current = category;
+
   useEffect(() => {
     const searchSimilar = async () => {
-      // Only search if we have enough text
+      // Only search if we have enough text in the title
       if (!title || title.length < 3) {
         setSimilarIssues([]);
         return;
@@ -18,9 +25,9 @@ const SimilarIssues = ({ title, description, category, onSelectIssue, isOverlay 
       setLoading(true);
       try {
         const params = new URLSearchParams();
-        if (title) params.append('title', title);
-        if (description) params.append('description', description);
-        if (category) params.append('category', category);
+        params.append('title', title);
+        if (descriptionRef.current) params.append('description', descriptionRef.current);
+        if (categoryRef.current) params.append('category', categoryRef.current);
 
         const response = await fetch(`http://127.0.0.1:8000/api/issues/search-similar/?${params}`);
         const data = await response.json();
@@ -39,13 +46,14 @@ const SimilarIssues = ({ title, description, category, onSelectIssue, isOverlay 
       }
     };
 
-    // Debounce the search
+    // Debounce the search — only fires when title changes
     const timeoutId = setTimeout(() => {
       searchSimilar();
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [title, description, category]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title]);
 
   if (similarIssues.length === 0 && !loading) {
     return null;

@@ -22,15 +22,20 @@ const ImpactMetricsSection = () => {
 
   const fetchMetrics = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/issues/stats/');
-      const data = await response.json();
-      
-      if (data.success) {
+      const [statsRes, usersRes] = await Promise.all([
+        fetch('http://127.0.0.1:8000/api/issues/stats/'),
+        fetch('http://127.0.0.1:8000/api/accounts/users/count/')
+      ]);
+
+      const statsData = await statsRes.json();
+      const usersData = await usersRes.json();
+
+      if (statsData.success) {
         setFinalCounts({
-          issues: data.data.total || 0,
-          resolved: data.data.by_status['Resolved'] || 0,
-          users: 156,
-          responses: data.data.by_status['In Progress'] || 0
+          issues: statsData.data.total || 0,
+          resolved: statsData.data.by_status['Resolved'] || 0,
+          users: usersData.success ? usersData.count : 0,
+          responses: statsData.data.by_status['Resolved'] || 0
         });
       }
     } catch (error) {

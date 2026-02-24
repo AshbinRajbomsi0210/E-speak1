@@ -80,48 +80,85 @@ const PhotoUpload = ({ photos, onPhotosChange }) => {
   };
 
   return (
-    <div className="space-y-2">
-      {/* Upload Area */}
-      <div
-        className={`relative border-2 border-dashed rounded-lg p-4 text-center transition-all ${
-          dragActive 
-            ? 'border-primary bg-primary/5' 
-            : 'border-border hover:border-primary/50'
-        }`}
-        onDragEnter={handleDrag}
-        onDragLeave={handleDrag}
-        onDragOver={handleDrag}
-        onDrop={handleDrop}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept="image/*"
-          onChange={handleFileSelect}
-          className="hidden"
-        />
-        
-        <div className="flex items-center justify-center gap-3">
-          <Icon name="Upload" size={20} className="text-text-secondary" />
-          <div className="text-left">
-            <p className="text-sm font-medium text-foreground">Add photos</p>
-            <p className="text-xs text-text-secondary">
-              Drag here or <button onClick={openFileDialog} className="text-primary hover:underline">browse</button> • Max {maxFiles} photos
-            </p>
+    <div className="space-y-3">
+      {/* Main Upload Zone - fully clickable */}
+      {photos?.length === 0 ? (
+        <div
+          onClick={openFileDialog}
+          onDragEnter={handleDrag}
+          onDragLeave={handleDrag}
+          onDragOver={handleDrag}
+          onDrop={handleDrop}
+          className={`relative border-2 border-dashed rounded-xl cursor-pointer transition-all duration-200 ${
+            dragActive
+              ? 'border-primary bg-primary/10 scale-[1.01]'
+              : 'border-border hover:border-primary hover:bg-primary/5'
+          }`}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept="image/*"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+          <div className="flex items-center gap-3 py-3 px-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors ${
+              dragActive ? 'bg-primary/20' : 'bg-primary/10'
+            }`}>
+              <Icon name="Camera" size={20} className="text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-foreground">
+                {dragActive ? 'Drop photos here' : 'Click to add photos'}
+              </p>
+              <p className="text-xs text-text-secondary mt-0.5">
+                Drag & drop or click to browse · JPG, PNG, WEBP · Up to {maxFiles} photos · 10MB each
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 rounded-lg flex-shrink-0">
+              <Icon name="Upload" size={14} className="text-primary" />
+              <span className="text-xs font-medium text-primary">Browse</span>
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* Photo Previews - Compact Grid */}
-      {photos?.length > 0 && (
+      ) : (
+        /* Photo grid with add-more tile */
         <div>
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-xs text-text-secondary">
-              {photos?.length}/{maxFiles} photos
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-medium text-foreground">
+              Photos <span className="text-text-secondary font-normal">({photos?.length}/{maxFiles})</span>
             </p>
+            {photos?.length < maxFiles && (
+              <button
+                type="button"
+                onClick={openFileDialog}
+                className="text-xs text-primary hover:text-primary/80 font-medium flex items-center gap-1 civic-transition"
+              >
+                <Icon name="Plus" size={14} />
+                Add more
+              </button>
+            )}
           </div>
-          <div className="grid grid-cols-5 gap-1.5">
+
+          <div
+            onDragEnter={handleDrag}
+            onDragLeave={handleDrag}
+            onDragOver={handleDrag}
+            onDrop={handleDrop}
+            className={`grid grid-cols-3 sm:grid-cols-5 gap-2 p-3 rounded-xl border-2 border-dashed transition-colors ${
+              dragActive ? 'border-primary bg-primary/5' : 'border-border'
+            }`}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
             {photos?.map((photo) => (
               <div key={photo?.id} className="relative group">
                 <div className="aspect-square rounded-lg overflow-hidden bg-muted">
@@ -131,15 +168,27 @@ const PhotoUpload = ({ photos, onPhotosChange }) => {
                     className="w-full h-full object-cover"
                   />
                 </div>
-                
                 <button
+                  type="button"
                   onClick={() => removePhoto(photo?.id)}
-                  className="absolute -top-2 -right-2 w-5 h-5 bg-error text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110"
+                  className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-error text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:scale-110 shadow-sm"
                 >
-                  <Icon name="X" size={12} />
+                  <Icon name="X" size={11} />
                 </button>
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 rounded-lg transition-colors" />
               </div>
             ))}
+            {/* Add more tile inline */}
+            {photos?.length < maxFiles && (
+              <button
+                type="button"
+                onClick={openFileDialog}
+                className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-primary hover:bg-primary/5 flex flex-col items-center justify-center gap-1 text-text-secondary hover:text-primary transition-all"
+              >
+                <Icon name="Plus" size={20} />
+                <span className="text-[10px] font-medium">Add</span>
+              </button>
+            )}
           </div>
         </div>
       )}

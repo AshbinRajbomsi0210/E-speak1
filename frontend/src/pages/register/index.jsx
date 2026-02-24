@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import RegisterForm from './components/RegisterForm';
 import Icon from '../../components/AppIcon';
+import Button from '../../components/ui/Button';
 // import { useAuth } from '../../context/AuthContext';
 
 const Register = () => {
@@ -77,8 +78,19 @@ const Register = () => {
       </div>
 
       {/* Right Panel - Register Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-background">
-        <div className="w-full max-w-md space-y-8">
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-background relative">
+        {/* Back to Home Button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/home')}
+          className="absolute top-6 left-6"
+        >
+          <Icon name="ArrowLeft" size={18} />
+          <span className="ml-2">Back to Home</span>
+        </Button>
+
+        <div className="w-full max-w-md space-y-8 mt-12 lg:mt-0">
           {/* Mobile Logo */}
           <Link to="/home" className="lg:hidden flex items-center justify-center space-x-3 mb-8">
             <div className="flex items-center justify-center w-12 h-12 bg-accent rounded-xl">

@@ -7,7 +7,7 @@ import InteractiveMap from '../../../components/InteractiveMap';
 const LocationSelector = ({ location, onLocationChange }) => {
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
-  const [mapCenter, setMapCenter] = useState({ lat: 27.7172, lng: 85.3240 }); 
+  const [mapCenter, setMapCenter] = useState({ lat: 28.2096, lng: 83.9856 }); // Pokhara, Kaski
   const [zoomLevel, setZoomLevel] = useState(12);
   const [locationStatus, setLocationStatus] = useState(null); // 'loading', 'success', 'error'
 
@@ -217,7 +217,7 @@ const LocationSelector = ({ location, onLocationChange }) => {
       <div className="flex items-center justify-between">
         <label className="text-sm font-medium text-foreground flex items-center gap-2">
           <Icon name="MapPin" size={16} className="text-primary" />
-          Location
+          Location <span className="text-error">*</span>
         </label>
         <Button
           variant={locationStatus === 'success' ? 'default' : 'outline'}

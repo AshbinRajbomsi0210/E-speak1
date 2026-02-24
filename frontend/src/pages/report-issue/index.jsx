@@ -99,6 +99,11 @@ const ReportIssue = () => {
       return false;
     }
 
+    if (!formData.location?.address) {
+      alert('Please select a location for the issue.');
+      return false;
+    }
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.reporterEmail)) {
       alert('Please enter a valid email address');
@@ -238,8 +243,8 @@ const ReportIssue = () => {
       
       <main className="pt-16">
         <div className="bg-gradient-to-r from-primary/10 via-accent/5 to-primary/10 border-b border-border">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12">
-            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3">
               <div className="flex items-center justify-center w-14 h-14 bg-primary/10 rounded-2xl flex-shrink-0">
                 <Icon name="AlertCircle" size={28} className="text-primary" />
               </div>
@@ -255,9 +260,9 @@ const ReportIssue = () => {
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2 space-y-4">
               {showSummary ? (
                 <ReportSummary
                   formData={formData}
@@ -304,7 +309,8 @@ const ReportIssue = () => {
                           !formData.category ||
                           !formData.priority ||
                           !formData.reporterName ||
-                          !formData.reporterEmail
+                          !formData.reporterEmail ||
+                          !formData.location?.address
                         }
                         iconName="ArrowRight"
                         iconPosition="right"
@@ -324,7 +330,7 @@ const ReportIssue = () => {
               )}
             </div>
 
-            <div className="space-y-8">
+            <div className="space-y-4">
               <ProgressIndicator formData={formData} showSummary={showSummary} />
               {!showSummary && (
                 <AIAssistant formData={formData} onSuggestionApply={handleAISuggestion} onSuggestionsGenerated={handleSuggestionsGenerated} appliedFields={appliedSuggestionFields} />

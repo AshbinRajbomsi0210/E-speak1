@@ -97,6 +97,8 @@ const IssueForm = ({ formData, onFormChange, similarIssuesProps, aiSuggestions =
   const [showSimilar, setShowSimilar] = useState(false);
   const [titleFocused, setTitleFocused] = useState(false);
   const titleContainerRef = useRef(null);
+  const userDismissedRef = useRef(false);
+  const prevTitleRef = useRef('');
   const maxChars = 500;
 
   // Helper to get suggestions for a specific field type
@@ -113,11 +115,30 @@ const IssueForm = ({ formData, onFormChange, similarIssuesProps, aiSuggestions =
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Show similar issues dropdown when title has enough text
+  // Show similar issues dropdown when title has enough text.
+  // Reset the dismissed flag only when the title is cleared/significantly changed.
   useEffect(() => {
-    if (formData?.title?.length >= 3 && titleFocused) {
-      setShowSimilar(true);
+    const currentTitle = formData?.title || '';
+    const prevTitle = prevTitleRef.current;
+
+    // Reset dismissed state when user clears the title or starts a substantially new one
+    if (currentTitle.length < 3) {
+      userDismissedRef.current = false;
+    } else if (userDismissedRef.current) {
+      // If dismissed, only re-enable when the title has changed by more than 5 chars from when dismissed
+      const lengthDiff = Math.abs(currentTitle.length - prevTitle.length);
+      if (lengthDiff > 5) {
+        userDismissedRef.current = false;
+      }
     }
+
+    if (currentTitle.length >= 3 && titleFocused && !userDismissedRef.current) {
+      setShowSimilar(true);
+    } else if (currentTitle.length < 3) {
+      setShowSimilar(false);
+    }
+
+    prevTitleRef.current = currentTitle;
   }, [formData?.title, titleFocused]);
 
   const categoryOptions = [
@@ -181,7 +202,11 @@ const IssueForm = ({ formData, onFormChange, similarIssuesProps, aiSuggestions =
                 category={similarIssuesProps.category}
                 onSelectIssue={similarIssuesProps.onSelectIssue}
                 isOverlay={true}
-                onClose={() => setShowSimilar(false)}
+                onClose={() => {
+                  userDismissedRef.current = true;
+                  prevTitleRef.current = formData?.title || '';
+                  setShowSimilar(false);
+                }}
               />
             </div>
           )}

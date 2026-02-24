@@ -302,3 +302,10 @@ def sync_user_from_clerk(request):
         import traceback
         traceback.print_exc()
         return Response({'error': f'Failed to sync user: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['GET'])
+def user_count(request):
+    """Return the total number of registered users (public endpoint)."""
+    count = User.objects.count()
+    return Response({'success': True, 'count': count})
